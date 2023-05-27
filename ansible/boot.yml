@@ -10,5 +10,15 @@
     - name: Creates preseed files
       template:
         src: "config/preseed.j2"
-        dest: "{{netboot_path}}/debian/{{hostvars[item].mac}}.test.cfg"
+        dest: "{{netboot_path}}/debian/{{hostvars[item].mac}}/preseed.cfg"
+      with_items: "{{ groups['pve01'] }}"
+    - name: Creates grub directories
+      file:
+        path: "{{netboot_path}}/grub/{{hostvars[item].mac}}"
+        state: directory
+      with_items: "{{ groups['pve01'] }}"
+    - name: Copies grub configs
+      ansible.builtin.copy:
+        src: config/grub.cfg
+        dest: "{{netboot_path}}/grub/{{hostvars[item].mac}}/grub.cfg"
       with_items: "{{ groups['pve01'] }}"
