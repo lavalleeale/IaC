@@ -1,0 +1,12 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    username: alex
+    password: "$6$nRe2J0wJYohC0O2g$NJk2IWtHqT05lAbI5SeXDafxf9xC.5DbVLsPFS4TEXiTCJikxS0kQgzZeXCURlJeiWaHM2BG9x14gWXLpvxuY0"
+  ssh:
+    authorized-keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCbvVMGfXU//W2fZ7ez9JrACEPSjq6YX6pacyFGFLjZOG30oz0z6xtjsAmK888rJWgABhF1IinuM7Qe1cEqWSg4D58tZDIib8w0lmmzOAVCKlEDabPGQnPFSV/qeAXRu3YS4WnfIyqCJeRZN8dpwbhRKlmrBll5rBWTM+U71Mdm2P+j6+2Lo/dYARAsT4e5fCsMo94ph4W+ViMIOa/AkHen8B9FjZdxPz9tBUwPjtdWLZdxrWcY3CXshVq1Lqvhpl8y/h3+Y38pl4E7ydiRPda/uL2BpYatvD8lYfddyLNcZlm43nhG9Kj84ob9sTlXTL8HnIZCUHVgHjTOjo/KB65K5YCnCI/6wlY3ELS3p2CyWAuq7/GRC6HZRtAwuqoS/tVtqJi3aTXSz24knTl6V/I7jV/UUaDy1SmdPYHmGo1g+ETknLn/Dh77Z8xa4YgOYY8+btaAEpnyp+9iZlj0mxOv69ZTyiBfgaQ13s92Dy/EQN4iKo9/K9vV0gaLyEPdpis= alex@Alexs-MacBook-Air.local"
+  storage:
+    grub:
+      reorder_uefi: False

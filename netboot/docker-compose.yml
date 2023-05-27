@@ -1,0 +1,22 @@
+version: "3.3"
+services:
+  tftp:
+    environment:
+      TFTPD_BIND_ADDRESS: "0.0.0.0:69"
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - SYS_CHROOT
+    ports:
+      - "0.0.0.0:69:69/udp"
+    volumes:
+      - "./data:/tftpboot"
+    image: kalaksi/tftpd
+  http:
+    image: halverneus/static-file-server
+    ports:
+      - "0.0.0.0:8000:8080"
+    volumes:
+      - "./data:/web"

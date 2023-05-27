@@ -1,0 +1,18 @@
+- name: Copy unifi-repo.gpg
+  copy:
+    src: "{{item}}"
+    dest: /etc/apt/trusted.gpg.d/
+  with_items:
+    - "gpg/unifi-repo.gpg"
+    - "gpg/mongodb-server-3.6.gpg"
+- name: Enable unifi and mongodb repo
+  apt_repository:
+    repo: "{{item}}"
+  with_items:
+    - "deb http://repo.mongodb.org/apt/debian stretch/mongodb-org/3.6 main"
+    - "deb https://www.ui.com/downloads/unifi/debian stable ubiquiti"
+- name: Install Unifi
+  ansible.builtin.apt:
+    pkg:
+      - unifi
+    update_cache: true

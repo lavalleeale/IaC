@@ -1,0 +1,124 @@
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- community.docker.docker_compose:
+    project_name: immich
+    definition:
+      version: "3.8"
+
+      services:
+        immich-server:
+          container_name: immich_server
+          image: ghcr.io/immich-app/immich-server:release
+          entrypoint: ["/bin/sh", "./start-server.sh"]
+          volumes:
+            - /data:/usr/src/app/upload
+          environment:
+            TYPESENSE_API_KEY: test123123123
+            DB_HOSTNAME: database
+            DB_USERNAME: postgres
+            DB_PASSWORD: postgres
+            DB_DATABASE_NAME: immich
+            REDIS_HOSTNAME: immich_redis
+          depends_on:
+            - redis
+            - database
+            - typesense
+          restart: always
+
+        immich-microservices:
+          container_name: immich_microservices
+          image: ghcr.io/immich-app/immich-server:release
+          entrypoint: ["/bin/sh", "./start-microservices.sh"]
+          environment:
+            DB_HOSTNAME: database
+            DB_USERNAME: postgres
+            DB_PASSWORD: postgres
+            DB_DATABASE_NAME: immich
+            TYPESENSE_API_KEY: test123123123
+          volumes:
+            - /data:/usr/src/app/upload
+          depends_on:
+            - redis
+            - database
+            - typesense
+          restart: always
+
+        immich-machine-learning:
+          container_name: immich_machine_learning
+          image: ghcr.io/immich-app/immich-machine-learning:release
+          volumes:
+            - /data:/usr/src/app/upload
+            - model-cache:/cache
+          restart: always
+
+        immich-web:
+          container_name: immich_web
+          image: ghcr.io/immich-app/immich-web:release
+          entrypoint: ["/bin/sh", "./entrypoint.sh"]
+          restart: always
+          volumes:
+            - /data:/usr/src/app/upload
+
+        typesense:
+          container_name: immich_typesense
+          image: typesense/typesense:0.24.0
+          environment:
+            TYPESENSE_API_KEY: test123123123
+            TYPESENSE_DATA_DIR: /data
+          logging:
+            driver: none
+          volumes:
+            - tsdata:/data
+          restart: always
+
+        redis:
+          container_name: immich_redis
+          image: redis:6.2
+          restart: always
+
+        database:
+          container_name: immich_postgres
+          image: postgres:14
+          environment:
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_DB: immich
+            PG_DATA: /var/lib/postgresql/data
+          volumes:
+            - pgdata:/var/lib/postgresql/data
+          restart: always
+
+        immich-proxy:
+          container_name: immich_proxy
+          image: ghcr.io/immich-app/immich-proxy:release
+          environment:
+            IMMICH_WEB_URL: http://immich-web:3000
+            IMMICH_SERVER_URL: http://immich-server:3001
+            TYPESENSE_API_KEY: test123123123
+          ports:
+            - 2283:8080
+          depends_on:
+            - immich-server
+          restart: always
+
+      volumes:
+        pgdata:
+        model-cache:
+        tsdata:

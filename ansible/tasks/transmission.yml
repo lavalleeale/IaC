@@ -1,0 +1,53 @@
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- community.docker.docker_compose:
+    project_name: transmission
+    definition:
+      services:
+        gluetun:
+          restart: always
+          image: qmcgaw/gluetun
+          volumes:
+            - gluetun:/gluetun
+          ports:
+            - "9091:9091"
+          cap_add:
+            - NET_ADMIN
+          environment:
+            - VPN_SERVICE_PROVIDER=private internet access
+            - OPENVPN_USER={{OPENVPN_USER}}
+            - OPENVPN_PASSWORD={{OPENVPN_PASSWORD}}
+            - SERVER_REGIONS=CA Vancouver
+            - PRIVATE_INTERNET_ACCESS_VPN_PORT_FORWARDING=on
+        transmission:
+          image: linuxserver/transmission:4.0.3
+          network_mode: "service:gluetun"
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Los_Angeles
+          volumes:
+            - /data/transmission/downloads:/downloads
+            - /data/tv:/tv
+            - /data/private/tv:/private/tv
+            - /data/movies:/movies
+          restart: always
+      volumes:
+        gluetun:

@@ -1,0 +1,8 @@
+*.gz
+*.efi
+*.pf2
+*.deb
+*.iso
+initrd
+linux
+vmlinuz

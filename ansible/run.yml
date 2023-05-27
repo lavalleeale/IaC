@@ -1,0 +1,66 @@
+---
+- hosts: pve01
+  become: true
+
+  tasks:
+    - import_tasks: tasks/essential.yml
+- hosts: pve01
+  become: true
+  tags:
+    - pve
+
+  tasks:
+    - import_tasks: tasks/pve/main.yml
+- hosts: alexa-desktop.lan
+  become: true
+  tags:
+    - lxc
+
+  tasks:
+    - import_tasks: tasks/pve/lxc.yml
+- hosts: ct
+  become: true
+
+  tasks:
+    - import_tasks: tasks/essential.yml
+- hosts: ubuntuserver.lan
+  become: true
+  tasks:
+    - import_tasks: tasks/nvidia-drivers.yml
+- hosts: alexa-desktop.lan
+  become: true
+  tasks:
+    - import_tasks: tasks/samba.yml
+  handlers:
+    - import_tasks: handlers/smb.yml
+- hosts: transmission.lan
+
+  handlers:
+    - import_tasks: handlers/transmission.yml
+
+  tasks:
+    - import_tasks: tasks/transmission.yml
+- hosts: jellyfin.lan
+  gather_facts: false
+  become: true
+  tasks:
+    - import_tasks: tasks/jellyfin.yml
+- hosts: unifi.lan
+
+  tasks:
+    - import_tasks: tasks/unifi.yml
+- hosts: heimdall.lan
+
+  handlers:
+    - import_tasks: handlers/heimdall.yml
+
+  tasks:
+    - import_tasks: tasks/heimdall.yml
+- hosts: caddy.lan
+
+  tasks:
+    - import_tasks: tasks/caddy.yml
+- hosts: immich.lan
+
+  tasks:
+    - import_tasks: tasks/immich.yml

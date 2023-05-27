@@ -1,0 +1,20 @@
+- name: Copy jellyfin_team.gpg and nvidia.gpg
+  copy:
+    src: "{{item}}"
+    dest: /etc/apt/trusted.gpg.d/
+  with_items:
+    - gpg/jellyfin.gpg
+    - gpg/nvidia.gpg
+- name: Enable jellyfin and nvidia repo
+  apt_repository:
+    repo: "{{item}}"
+  with_items:
+    - "deb https://repo.jellyfin.org/debian bullseye main"
+    - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
+- name: Install jellyfin and nvidia
+  ansible.builtin.apt:
+    pkg:
+      - jellyfin
+      - libnvcuvid1
+      - libnvidia-encode1
+    update_cache: true

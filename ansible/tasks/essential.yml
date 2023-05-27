@@ -1,0 +1,12 @@
+- name: Enable contrib and non-free repository
+  apt_repository:
+    repo: "{{ item }}"
+  loop:
+    - "deb http://http.us.debian.org/debian bullseye contrib"
+    - "deb http://http.us.debian.org/debian bullseye non-free"
+- name: Install python3-apt and sudo
+  ansible.builtin.apt:
+    pkg:
+      - python3-apt
+      - sudo
+    update_cache: true

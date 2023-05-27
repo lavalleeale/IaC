@@ -1,0 +1,13 @@
+- name: Copy nvidia.gpg
+  copy:
+    src: "gpg/nvidia.gpg"
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable nvidia repo
+  apt_repository:
+    repo: "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
+- name: Install nvidia drivers
+  ansible.builtin.apt:
+    pkg:
+      - pve-headers
+      - cuda-drivers
+    update_cache: true

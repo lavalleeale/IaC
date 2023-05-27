@@ -1,0 +1,33 @@
+- name: Install samba
+  ansible.builtin.apt:
+    pkg:
+      - samba
+    update_cache: true
+- name: Add users
+  ansible.builtin.user:
+    name: "{{item}}"
+    shell: /bin/nologin
+    create_home: false
+  loop:
+    - peter
+- name: Set SMB Passwords
+  shell: >
+    (pdbedit --user={{ item.user }} 2>&1 > /dev/null)
+    || (echo '{{ item.pass }}'; echo '{{ item.pass }}')
+    | smbpasswd -s -a {{ item.user }}
+  register: smbpasswd
+  changed_when: "'Added user' in smbpasswd.stdout"
+  with_items: "{{ smbusers }}"
+  loop_control:
+    label: "{{ item.user }}"
+  notify: restart smbd
+- name: Copy smb.conf
+  copy:
+    src: config/smb.conf
+    dest: /etc/samba/smb.conf
+  notify: restart smbd
+- name: Copy samba.service
+  copy:
+    src: config/samba.service
+    dest: /etc/avahi/services/samba.service
+  notify: restart avahi

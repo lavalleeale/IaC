@@ -1,0 +1,10 @@
+pve_group: pve01
+pve_cluster_enabled: yes
+pve_api_host: alexa-desktop.lan
+pve_lxc_ostemplate_name: debian-11-standard_11.6-1_amd64.tar.zst
+pve_lxc_root_authorized_pubkey: "{{ lookup('file', '~/.ssh/id_local.pub') }}"
+pve_lxc_cpu_cores: 2
+pve_onboot: true
+unprivileged: true
+pve_lxc_features:
+  - nesting=1

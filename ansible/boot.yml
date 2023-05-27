@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+
+  tasks:
+    - name: Creates preseed directories
+      file:
+        path: "{{netboot_path}}/debian/{{hostvars[item].mac}}"
+        state: directory
+      with_items: "{{ groups['pve01'] }}"
+    - name: Creates preseed files
+      template:
+        src: "config/preseed.j2"
+        dest: "{{netboot_path}}/debian/{{hostvars[item].mac}}.test.cfg"
+      with_items: "{{ groups['pve01'] }}"

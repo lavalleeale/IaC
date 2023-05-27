@@ -1,0 +1,9 @@
+home.lavallee.one {
+reverse_proxy http://homeassistant.lan:8123
+tls alex@lavallee.one
+}
+
+immich.lavallee.one {
+reverse_proxy http://immich.lan:2283
+tls alex@lavallee.one
+}

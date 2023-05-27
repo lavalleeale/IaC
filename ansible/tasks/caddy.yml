@@ -1,0 +1,6 @@
+- name: Update caddy config
+  include_role:
+    name: caddy_ansible.caddy_ansible
+  vars:
+    caddy_systemd_capabilities_enabled: true
+    caddy_config: "{{ lookup('file', 'config/Caddyfile') }}"

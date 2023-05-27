@@ -1,0 +1,36 @@
+- name: Install zfs
+  ansible.builtin.apt:
+    pkg:
+      - zfsutils-linux
+    update_cache: true
+  register: install
+- name: Load zfs module
+  ansible.builtin.command:
+    cmd: /sbin/modprobe zfs
+  when: install.changed
+- name: Update ipv6 to use dhcp
+  ansible.builtin.replace:
+    path: /etc/network/interfaces
+    regexp: "inet6 auto"
+    replace: "inet6 dhcp"
+- name: Creating a file with content
+  copy:
+    dest: "/etc/network/interfaces"
+    content: |
+      auto lo
+      iface lo inet loopback
+      auto vmbr0
+      iface vmbr0 inet static
+        address {{ansible_default_ipv4.address}}
+        netmask {{ansible_default_ipv4.netmask}}
+        gateway {{ansible_default_ipv4.gateway}}
+        bridge_ports {{bridge_port}}
+        bridge_fd 0
+        bridge_stp off
+
+- name: Install proxmox
+  include_role:
+    name: lae.proxmox
+  vars:
+    pve_cluster_enabled: true
+    pve_group: pve01
