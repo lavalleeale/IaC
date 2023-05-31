@@ -146,3 +146,20 @@
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0
+- name: Create sshca
+  include_role:
+    name: proxmox_create_lxc
+  vars:
+    unprivileged: true
+    pve_node: meepzee
+    pve_hostname: sshca
+    pve_lxc_vmid: 302
+    pve_lxc_memory: 1024
+    pve_lxc_swap: 1024
+    pve_lxc_net_interfaces:
+      - id: net0
+        name: eth0
+        hwaddr: 62:9e:f0:54:ff:6d
+        ip4: dhcp
+        ip6: dhcp
+        bridge: vmbr0

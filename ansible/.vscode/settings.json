@@ -1,0 +1,7 @@
+{
+  "yaml.schemas": {
+    "test": "/tmp/test.json",
+    "file:///Users/alex/.vscode/extensions/docsmsft.docs-yaml-1.0.0/dist/toc.schema.json": "/toc\\.yml/i",
+    "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": "file:///Users/alex/Documents/Programming/IaC/ansible/run.yml"
+  }
+}

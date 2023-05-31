@@ -30,6 +30,7 @@
           volumes:
             - /data:/usr/src/app/upload
           environment:
+            TZ: "America/Los_Angeles"
             TYPESENSE_API_KEY: test123123123
             DB_HOSTNAME: database
             DB_USERNAME: postgres
@@ -47,6 +48,7 @@
           image: ghcr.io/immich-app/immich-server:release
           entrypoint: ["/bin/sh", "./start-microservices.sh"]
           environment:
+            TZ: "America/Los_Angeles"
             DB_HOSTNAME: database
             DB_USERNAME: postgres
             DB_PASSWORD: postgres
@@ -66,6 +68,8 @@
           volumes:
             - /data:/usr/src/app/upload
             - model-cache:/cache
+          environment:
+            TZ: "America/Los_Angeles"
           restart: always
 
         immich-web:
@@ -73,6 +77,8 @@
           image: ghcr.io/immich-app/immich-web:release
           entrypoint: ["/bin/sh", "./entrypoint.sh"]
           restart: always
+          environment:
+            TZ: "America/Los_Angeles"
           volumes:
             - /data:/usr/src/app/upload
 
@@ -80,6 +86,7 @@
           container_name: immich_typesense
           image: typesense/typesense:0.24.0
           environment:
+            TZ: "America/Los_Angeles"
             TYPESENSE_API_KEY: test123123123
             TYPESENSE_DATA_DIR: /data
           logging:
@@ -92,11 +99,14 @@
           container_name: immich_redis
           image: redis:6.2
           restart: always
+          environment:
+            TZ: "America/Los_Angeles"
 
         database:
           container_name: immich_postgres
           image: postgres:14
           environment:
+            TZ: "America/Los_Angeles"
             POSTGRES_PASSWORD: postgres
             POSTGRES_USER: postgres
             POSTGRES_DB: immich
@@ -109,6 +119,7 @@
           container_name: immich_proxy
           image: ghcr.io/immich-app/immich-proxy:release
           environment:
+            TZ: "America/Los_Angeles"
             IMMICH_WEB_URL: http://immich-web:3000
             IMMICH_SERVER_URL: http://immich-server:3001
             TYPESENSE_API_KEY: test123123123

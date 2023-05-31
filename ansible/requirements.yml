@@ -5,3 +5,4 @@
   version: netmask
   name: proxmox_create_lxc
 - name: caddy_ansible.caddy_ansible
+- name: geerlingguy.ntp

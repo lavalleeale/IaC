@@ -1,0 +1,64 @@
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- community.docker.docker_compose:
+    project_name: sshca
+    pull: true
+    definition:
+      services:
+        db:
+          image: postgres
+          restart: always
+          environment:
+            TZ: "America/Los_Angeles"
+            POSTGRES_USER: sshca
+            POSTGRES_DB: sshca
+            POSTGRES_PASSWORD: "SCRAM-SHA-256$$4096:yG/E8BOzQ29soRvwFgntbQ==$$zLXeMVlwWIAx4P+1GL1W/vMuIMGJuhiYjplSOTQLwcI=:TjHMFnCjOoVHrb6+mrEqcFSLSMLSO+ufoPk7H+Dejoo="
+          ports:
+            - "5432:5432"
+          volumes:
+            - pgdata:/var/lib/postgresql/data
+        backend:
+          image: ghcr.io/sshca/sshca-server:latest
+          restart: always
+          ports:
+            - "4000:4000"
+          environment:
+            TZ: "America/Los_Angeles"
+            DATABASE_URL: "postgresql://sshca:{{DB_PASSWORD}}@db:5432/sshca"
+            JWT_PRIVATE: "{{JWT_PRIVATE}}"
+            JWT_PUBLIC: |
+              -----BEGIN PUBLIC KEY-----
+              MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArFdDkWgMIWY/At6vFZ5l
+              f0o0WuDvE2fMQ2zW+/IvumoVuhIsiVXgkBl0kRLpKdIrb+Ryn8yXWgvdqGWdooPF
+              OOWshXxku6fHbF896j3EQPIL/36biBlL9+PSCvh93l5vNGYdxhaO9zDJHEzzAmFG
+              e3j09eY4T4E0G/n+HvrbHKiYC5pWLPpe9Cg7kIJcB3aHby6h2EltJjQwVUiVS/RJ
+              kxOpDECFXM5ecHF4hyXvKUuilncwS12NOpw3uj3JDU7cbw1qhTouuHaQqoge9UIo
+              +XX03zcjAXLRwwFmDkgqca69gV0/bB32M6NETC9+yU8DBeiaPm4DSP6EJnwQpKSV
+              WIm7W+CKJizR/9KNEptGbPGXAylzylub3XtZm/wqxl/w00Qe/znU/g5aJ77u1A/d
+              jwhHGy4VxC2fW2/aOEPvIoy/UJ/ujhkcKx9nxmo6D1Yqrkelx3YBXc6bA/sECEFj
+              EFtPkUs7vQIPk8BffqZL/gfxwMbg7sPtSkq2x/G1mhNmhmulnt9btheZTrnH/8r2
+              Nah88IjhE+5Slba5XFTaYPiycfbw6/JhKt9CWoZHYZetkGFEonkRql0A1TPvxis+
+              rrRrflnTx/FHJYan26OnRP6lsysWRrbERzwUr1o2txTTu+aoyG3JBOnHosIRbkv5
+              N++BpI0uqRKJrbCQezPXpSsCAwEAAQ==
+              -----END PUBLIC KEY-----
+            SSH_KEY: "{{SSH_KEY}}"
+            DOMAIN: "sshca.lavallee.one"
+      volumes:
+        pgdata:

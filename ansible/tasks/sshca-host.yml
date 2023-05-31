@@ -1,0 +1,37 @@
+- name: Insert/Update sshca block
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      Match all
+      TrustedUserCAKeys /etc/ssh/ca.pub
+      HostCertificate /etc/ssh/ssh_host_rsa_key.cert.pub
+- name: Check for ssh cert
+  stat:
+    path: /etc/ssh/ssh_host_rsa_key.cert.pub
+  register: sshca_cert_stat
+- name: Copy sshca_host
+  copy:
+    src: files/sshca_host
+    dest: /usr/bin/sshca_host
+- name: Make sshca_host executable
+  ansible.builtin.file:
+    path: /usr/bin/sshca_host
+    mode: "0755"
+- name: Update sshca every 30 minutes
+  ansible.builtin.cron:
+    name: "update sshca"
+    minute: "*/30"
+    job: "/usr/bin/sshca_host genCert --server https://sshca.lavallee.one --keyFile /etc/ssh/ssh_host_rsa_key.pub --certFile /etc/ssh/ssh_host_rsa_key.cert.pub --caFile /etc/ssh/ca.pub"
+- name: Login to sshca
+  ansible.builtin.command: sshca_host login --server https://sshca.lavallee.one --keyFile /etc/ssh/ssh_host_rsa_key.pub
+  register: sshca_login
+  when: sshca_cert_stat.stat.exists == false
+- debug: msg="{{ sshca_login.stdout }}"
+  when: sshca_cert_stat.stat.exists == false
+- name: Pause for verification
+  ansible.builtin.pause:
+    minutes: 10
+  when: sshca_cert_stat.stat.exists == false
+- name: Login to sshca
+  ansible.builtin.command: /usr/bin/sshca_host genCert --server https://sshca.lavallee.one --keyFile /etc/ssh/ssh_host_rsa_key.pub --certFile /etc/ssh/ssh_host_rsa_key.cert.pub --caFile /etc/ssh/ca.pub
+  when: sshca_cert_stat.stat.exists == false
