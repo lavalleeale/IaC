@@ -12,3 +12,13 @@ sshca-api.lavallee.one {
     reverse_proxy http://sshca.lan:4000
     tls alex@lavallee.one
 }
+
+jellyfin.lavallee.one {
+    reverse_proxy http://jellyfin.lan:8096
+    tls alex@lavallee.one
+}
+
+continuousintegration.lavallee.one {
+    reverse_proxy http://meepzee.lan:8080
+    tls alex@lavallee.one
+}

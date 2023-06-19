@@ -49,6 +49,7 @@
             - /data/tv:/tv
             - /data/private/tv:/private/tv
             - /data/movies:/movies
+            - /config:/config
           restart: always
       volumes:
         gluetun:

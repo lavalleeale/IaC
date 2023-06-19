@@ -1,35 +1,25 @@
 ---
 - hosts: pve01
-  become: true
-  vars:
-    ansible_ssh_host_key_checking: False
-    ansible_ssh_common_args: '-o "UserKnownHostsFile /dev/null"'
-
-  tasks:
-    - import_tasks: tasks/sshca-host.yml
-  tags:
-    - sshca
-- hosts: pve01
-  become: true
 
   tasks:
     - import_tasks: tasks/essential.yml
 - hosts: pve01
-  become: true
   tags:
     - pve
 
   tasks:
     - import_tasks: tasks/pve/main.yml
 - hosts: alexa-desktop.lan
-  become: true
   tags:
     - lxc
 
   tasks:
     - import_tasks: tasks/pve/lxc.yml
-- hosts: ct
-  become: true
+- hosts: sshca.lan
+
+  tasks:
+    - import_tasks: tasks/sshca.yml
+- hosts: all
   vars:
     ansible_ssh_host_key_checking: False
     ansible_ssh_common_args: '-o "UserKnownHostsFile /dev/null"'
@@ -38,17 +28,31 @@
     - import_tasks: tasks/sshca-host.yml
   tags:
     - sshca
+- hosts: step.lan
+
+  tags:
+    - step
+
+  tasks:
+    - import_tasks: tasks/step.yml
+  handlers:
+    - import_tasks: handlers/step.yml
+- hosts: all
+
+  tasks:
+    - import_tasks: tasks/step-host.yml
+  tags:
+    - step
 - hosts: ct
-  become: true
 
   tasks:
     - import_tasks: tasks/essential.yml
 - hosts: ubuntuserver.lan
-  become: true
   tasks:
     - import_tasks: tasks/nvidia-drivers.yml
 - hosts: alexa-desktop.lan
-  become: true
+  tags:
+    - smb
   tasks:
     - import_tasks: tasks/samba.yml
   handlers:
@@ -61,8 +65,6 @@
   tasks:
     - import_tasks: tasks/transmission.yml
 - hosts: jellyfin.lan
-  gather_facts: false
-  become: true
   tasks:
     - import_tasks: tasks/jellyfin.yml
 - hosts: unifi.lan
@@ -84,7 +86,13 @@
 
   tasks:
     - import_tasks: tasks/immich.yml
-- hosts: sshca.lan
+- hosts: meepzee.lan
+
+  tags:
+    - ci
+
+  handlers:
+    - import_tasks: handlers/continuousintegration.yml
 
   tasks:
-    - import_tasks: tasks/sshca.yml
+    - import_tasks: tasks/ContinuousIntegration.yml

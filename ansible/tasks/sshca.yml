@@ -60,5 +60,7 @@
               -----END PUBLIC KEY-----
             SSH_KEY: "{{SSH_KEY}}"
             DOMAIN: "sshca.lavallee.one"
+            HOST_VALIDITY_SECONDS: "7200"
+            CLIENT_VALIDITY_SECONDS: "600"
       volumes:
         pgdata:

@@ -1,8 +1,13 @@
----
-- name: lae.proxmox
-- src: https://github.com/lmilius-homelab/ansible-role-proxmox-create-lxc.git
-  scm: git
-  version: netmask
-  name: proxmox_create_lxc
-- name: caddy_ansible.caddy_ansible
-- name: geerlingguy.ntp
+roles:
+  - name: lae.proxmox
+  - src: https://github.com/lmilius-homelab/ansible-role-proxmox-create-lxc.git
+    scm: git
+    version: netmask
+    name: proxmox_create_lxc
+  - name: caddy_ansible.caddy_ansible
+  - name: geerlingguy.ntp
+  - name: fubarhouse.golang
+  - name: vaspapadopoulos.sysbox
+collections:
+  - name: maxhoesel.smallstep
+    version: "0.24.0"

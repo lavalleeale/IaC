@@ -1,0 +1,22 @@
+- name: Install step-ca
+  include_role:
+    name: maxhoesel.smallstep.step_ca
+  vars:
+    step_ca_name: Lavallee Internal CA
+    step_ca_root_password: "{{password}}"
+    step_ca_intermediate_password: "{{password}}"
+- name: Add an ACME provisioner to the CA
+  maxhoesel.smallstep.step_ca_provisioner:
+    ca_config: /etc/step-ca/config/ca.json
+    ca_url: https://step.lan
+    root: /etc/step-ca/certs/root_ca.crt
+    name: ACME
+    type: ACME
+  notify: reload step-ca
+- name: Get root CA fingerprint
+  command: "step-cli certificate fingerprint /etc/step-ca/certs/root_ca.crt"
+  register: root_ca_fp
+  changed_when: false
+- name: Show root CA fingerprint
+  debug:
+    msg: "Fingerprint of root cert: {{ root_ca_fp.stdout }}"

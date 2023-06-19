@@ -163,3 +163,20 @@
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0
+- name: Create ContinuousIntegration
+  include_role:
+    name: proxmox_create_lxc
+  vars:
+    unprivileged: true
+    pve_node: ubuntuserver
+    pve_hostname: step
+    pve_lxc_vmid: 203
+    pve_lxc_memory: 1024
+    pve_lxc_swap: 1024
+    pve_lxc_net_interfaces:
+      - id: net0
+        name: eth0
+        hwaddr: 4a:57:1a:85:59:0c
+        ip4: dhcp
+        ip6: dhcp
+        bridge: vmbr0

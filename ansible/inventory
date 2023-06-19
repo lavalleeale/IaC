@@ -4,10 +4,11 @@ ubuntuserver.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='enp7s
 meepzee.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='eno1' mac='a0:36:bc:bc:60:f5' drive='nvme-eui.6479a77710c0030b'
 
 [ct]
-transmission.lan ansible_ssh_user='root'
-jellyfin.lan ansible_ssh_user='root'
-unifi.lan ansible_ssh_user='root'
-heimdall.lan ansible_ssh_user='root'
-caddy.lan ansible_ssh_user='root'
-immich.lan ansible_ssh_user='root'
-sshca.lan ansible_ssh_user='root'
+step.lan
+transmission.lan
+jellyfin.lan
+unifi.lan
+heimdall.lan
+caddy.lan
+immich.lan
+sshca.lan 

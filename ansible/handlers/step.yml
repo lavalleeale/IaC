@@ -1,0 +1,4 @@
+- name: reload step-ca
+  systemd:
+    name: step-ca
+    state: reloaded

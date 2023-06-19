@@ -1,0 +1,5 @@
+- include_role:
+    name: maxhoesel.smallstep.step_bootstrap_host
+  vars:
+    step_bootstrap_ca_url: https://step.lan
+    step_bootstrap_fingerprint: "{{hostvars['step.lan']['root_ca_fp'].stdout}}"

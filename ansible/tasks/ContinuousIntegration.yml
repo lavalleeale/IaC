@@ -1,0 +1,110 @@
+- name: Get IP Addresses
+  copy:
+    dest: "/etc/network/interfaces.d/ci"
+    content: |
+      iface vmbr0 inet static
+        address 10.0.2.3/{{cidr}}
+      iface vmbr0 inet static
+        address 10.0.2.4/{{cidr}}
+  vars:
+    cidr: "{{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) | ansible.utils.ipaddr('prefix') }}"
+  register: networking
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker and postgres
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install sysbox
+  include_role:
+    name: vaspapadopoulos.sysbox
+  vars:
+    sysbox_docker_remove_containers: true
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- name: Copy registry-config.yml
+  copy:
+    src: config/registry-config.yml
+    dest: /opt/registry-config.yml
+- name: Add tag latest to image
+  community.docker.docker_image:
+    name: alex95712/base
+    repository: base
+    force_source: true
+    force_tag: true
+    source: pull
+- community.docker.docker_compose:
+    project_name: CI
+    pull: true
+    definition:
+      services:
+        redis:
+          image: redis
+        db:
+          image: postgres
+          environment:
+            POSTGRES_PASSWORD: "{{db_password}}"
+            POSTGRES_USER: "{{db_user}}"
+            POSTGRES_DB: "{{db_name}}"
+          volumes:
+            - "db:/var/lib/postgresql/data"
+          healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+        registry:
+          image: alex95712/registry
+          ports:
+            - 10.0.2.3:443:5000
+          volumes:
+            - "/opt/registry-config.yml:/etc/docker/registry/config.yml"
+            - "/opt/registry:/var/lib/registry"
+        registry_auth:
+          image: alex95712/registry-auth
+          ports:
+            - 10.0.2.4:443:443
+          environment:
+            DATABASE_URL: "postgres://{{db_user}}:{{db_password}}@db:5432/{{db_name}}?sslmode=disable"
+            JWT_SECRET: "{{JWT_SECRET}}"
+            HOST: "{{AUTH_HOST}}"
+            DIRECTORY_URL: https://step.lan/acme/ACME/directory
+            ADDRESS: ":https"
+          depends_on:
+            db:
+              condition: service_healthy
+        continuous_integration:
+          image: alex95712/ci
+          ports:
+            - 8080:8080
+          environment:
+            DOMAIN: "{{DOMAIN}}"
+            JWT_SECRET: "{{JWT_SECRET}}"
+            DOCKER_HOST: unix:///var/run/docker.sock
+            REDIS_URL: redis://redis:6379
+            DATABASE_URL: "postgres://{{db_user}}:{{db_password}}@db:5432/{{db_name}}?sslmode=disable"
+            RUNTIME: sysbox-runc
+            REGISTRY_URL: registry.ci
+            WEBHOOK_SECRET: "{{WEBHOOK_SECRET}}"
+            GITHUB_CLIENT_ID: "{{GITHUB_CLIENT_ID}}"
+            GITHUB_CLIENT_SECRET: "{{GITHUB_CLIENT_SECRET}}"
+            GITHUB_APP_ID: "{{GITHUB_APP_ID}}"
+            GITHUB_KEY: "{{GITHUB_KEY}}"
+          volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+          depends_on:
+            db:
+              condition: service_healthy
+      volumes:
+        db:
