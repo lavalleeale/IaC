@@ -96,6 +96,7 @@
             DATABASE_URL: "postgres://{{db_user}}:{{db_password}}@db:5432/{{db_name}}?sslmode=disable"
             RUNTIME: sysbox-runc
             REGISTRY_URL: registry.ci
+            PERSIST_HOST: ci-proxy.lavallee.one
             WEBHOOK_SECRET: "{{WEBHOOK_SECRET}}"
             GITHUB_CLIENT_ID: "{{GITHUB_CLIENT_ID}}"
             GITHUB_CLIENT_SECRET: "{{GITHUB_CLIENT_SECRET}}"
@@ -106,5 +107,14 @@
           depends_on:
             db:
               condition: service_healthy
+        proxy:
+          image: alex95712/proxy
+          ports:
+            - 8081:80
+          environment:
+            - ADDRESS=:http
+            - MAIN_HOST=continuous_integration:8080
+            - PROXY_HOST=10.0.1.12
+            - REDIS_URL=redis://redis:6379
       volumes:
         db:

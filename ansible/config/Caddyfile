@@ -22,3 +22,18 @@ continuousintegration.lavallee.one {
     reverse_proxy http://meepzee.lan:8080
     tls alex@lavallee.one
 }
+
+lemmios.lavallee.one {
+    reverse_proxy http://10.1.1.1:8080
+    tls alex@lavallee.one
+}
+
+lemmios-dev.lavallee.one {
+    reverse_proxy http://mac.dev:8080
+    tls alex@lavallee.one
+}
+
+lemmy.lavallee.one {
+    reverse_proxy http://meepzee.lan
+    tls alex@lavallee.one
+}

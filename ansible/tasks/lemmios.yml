@@ -1,0 +1,134 @@
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- community.docker.docker_compose:
+    project_name: lemmios
+    pull: true
+    definition:
+      volumes:
+        db_data:
+
+      x-shared_environment: &shared_environment
+        LOG_LEVEL: ${LOG_LEVEL:-debug}
+        DATABASE_HOST: db
+        DATABASE_NAME: vapor_database
+        DATABASE_USERNAME: vapor_username
+        DATABASE_PASSWORD: "{{DB_PASSWORD}}"
+        REDIS_HOST: "redis://redis:6379"
+        PEM_DATA: "{{ PEM_DATA }}"
+      services:
+        app:
+          restart: always
+          image: ghcr.io/lavalleeale/lemmiosapi:main
+          environment:
+            <<: *shared_environment
+          depends_on:
+            db:
+              condition: service_healthy
+            redis:
+              condition: service_healthy
+            migrate:
+              condition: service_completed_successfully
+          ports:
+            - "8080:8080"
+          # user: '0' # uncomment to run as root for testing purposes even though Dockerfile defines 'vapor' user.
+          command:
+            [
+              "serve",
+              "--env",
+              "production",
+              "--hostname",
+              "0.0.0.0",
+              "--port",
+              "8080",
+              "--log",
+              "info",
+            ]
+        queues:
+          restart: always
+          image: ghcr.io/lavalleeale/lemmiosapi:main
+          environment:
+            <<: *shared_environment
+            QUEUE_WORKERS: 64
+          depends_on:
+            db:
+              condition: service_healthy
+            redis:
+              condition: service_healthy
+            migrate:
+              condition: service_completed_successfully
+          # user: '0' # uncomment to run as root for testing purposes even though Dockerfile defines 'vapor' user.
+          command: ["queues", "--env", "production", "--log", "info"]
+        scheduled:
+          restart: always
+          image: ghcr.io/lavalleeale/lemmiosapi:main
+          environment:
+            <<: *shared_environment
+            SKIP_INSTANCES: ""
+          depends_on:
+            db:
+              condition: service_healthy
+            redis:
+              condition: service_healthy
+            migrate:
+              condition: service_completed_successfully
+          # user: '0' # uncomment to run as root for testing purposes even though Dockerfile defines 'vapor' user.
+          command:
+            ["queues", "--scheduled", "--env", "production", "--log", "info"]
+        migrate:
+          image: ghcr.io/lavalleeale/lemmiosapi:main
+          environment:
+            <<: *shared_environment
+          depends_on:
+            db:
+              condition: service_healthy
+          command: ["migrate", "--yes"]
+        revert:
+          image: ghcr.io/lavalleeale/lemmiosapi:main
+          environment:
+            <<: *shared_environment
+          depends_on:
+            db:
+              condition: service_healthy
+          command: ["migrate", "--revert", "--yes"]
+          deploy:
+            replicas: 0
+        db:
+          restart: always
+          image: postgres:15-alpine
+          volumes:
+            - db_data:/var/lib/postgresql/data/pgdata
+          environment:
+            PGDATA: /var/lib/postgresql/data/pgdata
+            POSTGRES_USER: vapor_username
+            POSTGRES_PASSWORD: "{{DB_PASSWORD}}"
+            POSTGRES_DB: vapor_database
+          healthcheck:
+            test: ["CMD", "pg_isready", "-U", "vapor_username"]
+            interval: 5s
+            timeout: 5s
+            retries: 3
+        redis:
+          restart: always
+          image: redis:7
+          healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 3

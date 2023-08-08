@@ -8,6 +8,9 @@ roles:
   - name: geerlingguy.ntp
   - name: fubarhouse.golang
   - name: vaspapadopoulos.sysbox
+  - name: datadog.datadog
 collections:
   - name: maxhoesel.smallstep
     version: "0.24.0"
+# install command
+# ansible-galaxy install -r requirements.yml

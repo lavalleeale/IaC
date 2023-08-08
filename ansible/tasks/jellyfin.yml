@@ -18,3 +18,8 @@
       - libnvcuvid1
       - libnvidia-encode1
     update_cache: true
+- name: Allow jellyfin to listen on low ports
+  community.general.capabilities:
+    path: /usr/lib/jellyfin/bin/jellyfin
+    capability: cap_net_bind_service+ep
+    state: present

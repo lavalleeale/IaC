@@ -163,7 +163,7 @@
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0
-- name: Create ContinuousIntegration
+- name: Create Step
   include_role:
     name: proxmox_create_lxc
   vars:
@@ -177,6 +177,24 @@
       - id: net0
         name: eth0
         hwaddr: 4a:57:1a:85:59:0c
+        ip4: dhcp
+        ip6: dhcp
+        bridge: vmbr0
+- name: Create Lemmios
+  include_role:
+    name: proxmox_create_lxc
+  vars:
+    pve_lxc_disk: 16
+    unprivileged: true
+    pve_node: alexa-desktop
+    pve_hostname: lemmios
+    pve_lxc_vmid: 105
+    pve_lxc_memory: 1024
+    pve_lxc_swap: 1024
+    pve_lxc_net_interfaces:
+      - id: net0
+        name: eth0
+        hwaddr: b2:92:ad:8f:01:ad
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0

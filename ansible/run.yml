@@ -1,6 +1,8 @@
 ---
 - hosts: pve01
 
+  tags:
+    - essential
   tasks:
     - import_tasks: tasks/essential.yml
 - hosts: pve01
@@ -45,6 +47,9 @@
     - step
 - hosts: ct
 
+  tags:
+    - essential
+
   tasks:
     - import_tasks: tasks/essential.yml
 - hosts: ubuntuserver.lan
@@ -80,19 +85,31 @@
     - import_tasks: tasks/heimdall.yml
 - hosts: caddy.lan
 
+  tags:
+    - caddy
   tasks:
     - import_tasks: tasks/caddy.yml
 - hosts: immich.lan
 
+  tags:
+    - immich
+
   tasks:
     - import_tasks: tasks/immich.yml
-- hosts: meepzee.lan
+# - hosts: meepzee.lan
+
+#   tags:
+#     - ci
+
+#   handlers:
+#     - import_tasks: handlers/continuousintegration.yml
+
+#   tasks:
+#     - import_tasks: tasks/ContinuousIntegration.yml
+- hosts: racknerd
 
   tags:
-    - ci
-
-  handlers:
-    - import_tasks: handlers/continuousintegration.yml
+    - lemmios
 
   tasks:
-    - import_tasks: tasks/ContinuousIntegration.yml
+    - import_tasks: tasks/lemmios.yml
