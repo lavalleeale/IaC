@@ -1,4 +1,5 @@
 - name: Enable contrib and non-free repository
+  when: ansible_distribution == 'Debian'
   apt_repository:
     repo: "{{ item }}"
   loop:
@@ -9,4 +10,8 @@
     pkg:
       - python3-apt
       - sudo
+    update_cache: true
+- name: Apt upgrade
+  ansible.builtin.apt:
+    upgrade: full
     update_cache: true

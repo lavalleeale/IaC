@@ -23,7 +23,7 @@
     definition:
       services:
         db:
-          image: postgres
+          image: postgres:15
           restart: always
           environment:
             TZ: "America/Los_Angeles"

@@ -1,14 +1,3 @@
-- name: Get IP Addresses
-  copy:
-    dest: "/etc/network/interfaces.d/ci"
-    content: |
-      iface vmbr0 inet static
-        address 10.0.2.3/{{cidr}}
-      iface vmbr0 inet static
-        address 10.0.2.4/{{cidr}}
-  vars:
-    cidr: "{{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) | ansible.utils.ipaddr('prefix') }}"
-  register: networking
 - name: Copy docker.gpg
   copy:
     src: gpg/docker.gpg
@@ -52,7 +41,7 @@
         redis:
           image: redis
         db:
-          image: postgres
+          image: postgres:15
           environment:
             POSTGRES_PASSWORD: "{{db_password}}"
             POSTGRES_USER: "{{db_user}}"
@@ -66,21 +55,20 @@
             retries: 5
         registry:
           image: alex95712/registry
-          ports:
-            - 10.0.2.3:443:5000
           volumes:
             - "/opt/registry-config.yml:/etc/docker/registry/config.yml"
             - "/opt/registry:/var/lib/registry"
         registry_auth:
           image: alex95712/registry-auth
           ports:
-            - 10.0.2.4:443:443
+            - 443:443
           environment:
             DATABASE_URL: "postgres://{{db_user}}:{{db_password}}@db:5432/{{db_name}}?sslmode=disable"
             JWT_SECRET: "{{JWT_SECRET}}"
             HOST: "{{AUTH_HOST}}"
             DIRECTORY_URL: https://step.lan/acme/ACME/directory
             ADDRESS: ":https"
+            REGISTRY_ADDRESS: "http://registry"
           depends_on:
             db:
               condition: service_healthy

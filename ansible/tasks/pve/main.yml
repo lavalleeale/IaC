@@ -33,12 +33,10 @@
       auto vmbr0
       iface vmbr0 inet static
         address {{ip}}/{{cidr}}
-        gateway {{ansible_default_ipv4.gateway}}
+        gateway {{gateway}}
         bridge_ports {{bridge_port}}
         bridge_fd 0
         bridge_stp off
-  vars:
-    cidr: "{{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) | ansible.utils.ipaddr('prefix') }}"
 - name: Install proxmox
   include_role:
     name: lae.proxmox

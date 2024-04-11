@@ -32,7 +32,6 @@
             - /data:/usr/src/app/upload
           environment:
             TZ: "America/Los_Angeles"
-            TYPESENSE_API_KEY: test123123123
             DB_HOSTNAME: database
             DB_USERNAME: postgres
             DB_PASSWORD: postgres
@@ -41,7 +40,8 @@
           depends_on:
             - redis
             - database
-            - typesense
+          ports:
+            - "80:3001"
           restart: always
 
         immich-microservices:
@@ -54,13 +54,11 @@
             DB_USERNAME: postgres
             DB_PASSWORD: postgres
             DB_DATABASE_NAME: immich
-            TYPESENSE_API_KEY: test123123123
           volumes:
             - /data:/usr/src/app/upload
           depends_on:
             - redis
             - database
-            - typesense
           restart: always
 
         immich-machine-learning:
@@ -73,39 +71,16 @@
             TZ: "America/Los_Angeles"
           restart: always
 
-        immich-web:
-          container_name: immich_web
-          image: ghcr.io/immich-app/immich-web:release
-          entrypoint: ["/bin/sh", "./entrypoint.sh"]
-          restart: always
-          environment:
-            TZ: "America/Los_Angeles"
-          volumes:
-            - /data:/usr/src/app/upload
-
-        typesense:
-          container_name: immich_typesense
-          image: typesense/typesense:0.24.0
-          environment:
-            TZ: "America/Los_Angeles"
-            TYPESENSE_API_KEY: test123123123
-            TYPESENSE_DATA_DIR: /data
-          logging:
-            driver: none
-          volumes:
-            - tsdata:/data
-          restart: always
-
         redis:
           container_name: immich_redis
-          image: redis:6.2
+          image: redis:6.2-alpine@sha256:70a7a5b641117670beae0d80658430853896b5ef269ccf00d1827427e3263fa3
           restart: always
           environment:
             TZ: "America/Los_Angeles"
 
         database:
           container_name: immich_postgres
-          image: postgres:14
+          image: tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0
           environment:
             TZ: "America/Los_Angeles"
             POSTGRES_PASSWORD: postgres
@@ -116,21 +91,6 @@
             - pgdata:/var/lib/postgresql/data
           restart: always
 
-        immich-proxy:
-          container_name: immich_proxy
-          image: ghcr.io/immich-app/immich-proxy:release
-          environment:
-            TZ: "America/Los_Angeles"
-            IMMICH_WEB_URL: http://immich-web:3000
-            IMMICH_SERVER_URL: http://immich-server:3001
-            TYPESENSE_API_KEY: test123123123
-          ports:
-            - 2283:8080
-          depends_on:
-            - immich-server
-          restart: always
-
       volumes:
         pgdata:
         model-cache:
-        tsdata:

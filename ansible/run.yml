@@ -1,4 +1,11 @@
 ---
+- hosts: vps
+
+  tags:
+    - essential
+
+  tasks:
+    - import_tasks: tasks/essential.yml
 - hosts: pve01
 
   tags:
@@ -21,6 +28,8 @@
 
   tasks:
     - import_tasks: tasks/sshca.yml
+  tags:
+    - sshca-host
 - hosts: all
   vars:
     ansible_ssh_host_key_checking: False
@@ -64,6 +73,9 @@
     - import_tasks: handlers/smb.yml
 - hosts: transmission.lan
 
+  tags:
+    - transmission
+
   handlers:
     - import_tasks: handlers/transmission.yml
 
@@ -73,6 +85,9 @@
   tasks:
     - import_tasks: tasks/jellyfin.yml
 - hosts: unifi.lan
+
+  tags:
+    - unifi
 
   tasks:
     - import_tasks: tasks/unifi.yml
@@ -96,16 +111,13 @@
 
   tasks:
     - import_tasks: tasks/immich.yml
-# - hosts: meepzee.lan
+- hosts: meepzee.lan
 
-#   tags:
-#     - ci
+  tags:
+    - ci
 
-#   handlers:
-#     - import_tasks: handlers/continuousintegration.yml
-
-#   tasks:
-#     - import_tasks: tasks/ContinuousIntegration.yml
+  tasks:
+    - import_tasks: tasks/ContinuousIntegration.yml
 - hosts: racknerd
 
   tags:

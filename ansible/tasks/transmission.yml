@@ -27,6 +27,7 @@
           volumes:
             - gluetun:/gluetun
           ports:
+            - "8000:8000"
             - "9091:9091"
           cap_add:
             - NET_ADMIN
@@ -38,7 +39,7 @@
             SERVER_REGIONS: CA Vancouver
             PRIVATE_INTERNET_ACCESS_VPN_PORT_FORWARDING: "on"
         transmission:
-          image: linuxserver/transmission:4.0.3
+          image: linuxserver/transmission:4.0.5
           network_mode: "service:gluetun"
           environment:
             PUID: "1000"

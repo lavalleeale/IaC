@@ -1,39 +1,55 @@
 home.lavallee.one {
-    reverse_proxy http://homeassistant.lan:8123
-    tls alex@lavallee.one
+    reverse_proxy http://homeassistant.lan
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
 immich.lavallee.one {
-    reverse_proxy http://immich.lan:2283
-    tls alex@lavallee.one
+    reverse_proxy http://immich.lan
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
-
+ 
 sshca-api.lavallee.one {
     reverse_proxy http://sshca.lan:4000
-    tls alex@lavallee.one
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
 jellyfin.lavallee.one {
-    reverse_proxy http://jellyfin.lan:8096
-    tls alex@lavallee.one
+    reverse_proxy http://jellyfin.lan
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
 continuousintegration.lavallee.one {
     reverse_proxy http://meepzee.lan:8080
-    tls alex@lavallee.one
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
-lemmios.lavallee.one {
-    reverse_proxy http://10.1.1.1:8080
-    tls alex@lavallee.one
+*.ci-proxy.lavallee.one {
+    reverse_proxy http://meepzee.lan:8081
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
 lemmios-dev.lavallee.one {
     reverse_proxy http://mac.dev:8080
-    tls alex@lavallee.one
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
 
 lemmy.lavallee.one {
     reverse_proxy http://meepzee.lan
-    tls alex@lavallee.one
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
 }
