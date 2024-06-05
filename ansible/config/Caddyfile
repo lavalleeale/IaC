@@ -12,7 +12,7 @@ immich.lavallee.one {
     }
 }
  
-sshca-api.lavallee.one {
+sshca.lavallee.one {
     reverse_proxy http://sshca.lan:4000
     tls {
         dns cloudflare {$CF_KEY}
@@ -49,6 +49,13 @@ lemmios-dev.lavallee.one {
 
 lemmy.lavallee.one {
     reverse_proxy http://meepzee.lan
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
+}
+
+bitwarden.lavallee.one {
+    reverse_proxy http://bitwarden.lan
     tls {
         dns cloudflare {$CF_KEY}
     }

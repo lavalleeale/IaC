@@ -9,7 +9,7 @@
   apt_repository:
     repo: "{{item}}"
   with_items:
-    - "deb https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main"
+    - "deb [ signed-by=/etc/apt/trusted.gpg.d/mongodb-server-6.0.gpg] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main"
     - "deb https://www.ui.com/downloads/unifi/debian stable ubiquiti"
 - name: Install Unifi
   ansible.builtin.apt:

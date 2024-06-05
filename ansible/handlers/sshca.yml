@@ -1,0 +1,4 @@
+- name: sshca_block
+  ansible.builtin.service:
+    name: sshd
+    state: restarted

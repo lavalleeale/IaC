@@ -10,6 +10,7 @@
     pkg:
       - python3-apt
       - sudo
+      - curl
     update_cache: true
 - name: Apt upgrade
   ansible.builtin.apt:

@@ -35,6 +35,9 @@
     ansible_ssh_host_key_checking: False
     ansible_ssh_common_args: '-o "UserKnownHostsFile /dev/null"'
 
+  handlers:
+    - import_tasks: handlers/sshca.yml
+
   tasks:
     - import_tasks: tasks/sshca-host.yml
   tags:
@@ -48,7 +51,7 @@
     - import_tasks: tasks/step.yml
   handlers:
     - import_tasks: handlers/step.yml
-- hosts: all
+- hosts: pve01,ct
 
   tasks:
     - import_tasks: tasks/step-host.yml
@@ -91,13 +94,6 @@
 
   tasks:
     - import_tasks: tasks/unifi.yml
-- hosts: heimdall.lan
-
-  handlers:
-    - import_tasks: handlers/heimdall.yml
-
-  tasks:
-    - import_tasks: tasks/heimdall.yml
 - hosts: caddy.lan
 
   tags:
@@ -125,3 +121,8 @@
 
   tasks:
     - import_tasks: tasks/lemmios.yml
+- hosts: bitwarden.lan
+  tags:
+    - bitwarden
+  tasks:
+    - import_tasks: tasks/bitwarden.yml

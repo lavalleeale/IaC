@@ -1,4 +1,5 @@
 - name: Insert/Update sshca block
+  notify: sshca_block
   ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
     block: |

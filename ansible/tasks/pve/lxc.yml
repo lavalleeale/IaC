@@ -131,30 +131,13 @@
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0
-- name: Create heimdall
-  include_role:
-    name: proxmox_create_lxc
-  vars:
-    unprivileged: true
-    pve_node: alexa-desktop
-    pve_hostname: heimdall
-    pve_lxc_vmid: 102
-    pve_lxc_memory: 128
-    pve_lxc_swap: 128
-    pve_lxc_net_interfaces:
-      - id: net0
-        name: eth0
-        hwaddr: 6c:ca:64:b2:e1:7b
-        ip4: dhcp
-        ip6: dhcp
-        bridge: vmbr0
 - name: Create sshca
   include_role:
     name: proxmox_create_lxc
   vars:
     pve_lxc_disk: 16
     unprivileged: true
-    pve_node: meepzee
+    pve_node: alexa-desktop
     pve_hostname: sshca
     pve_lxc_vmid: 302
     pve_lxc_memory: 1024
@@ -180,6 +163,24 @@
       - id: net0
         name: eth0
         hwaddr: 4a:57:1a:85:59:0c
+        ip4: dhcp
+        ip6: dhcp
+        bridge: vmbr0
+- name: Create bitwarden
+  include_role:
+    name: proxmox_create_lxc
+  vars:
+    pve_lxc_disk: 8
+    unprivileged: true
+    pve_node: alexa-desktop
+    pve_hostname: bitwarden
+    pve_lxc_vmid: 105
+    pve_lxc_memory: 2048
+    pve_lxc_swap: 2048
+    pve_lxc_net_interfaces:
+      - id: net0
+        name: eth0
+        hwaddr: 4a:05:11:6e:f5:9c
         ip4: dhcp
         ip6: dhcp
         bridge: vmbr0

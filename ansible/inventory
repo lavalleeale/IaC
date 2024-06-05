@@ -7,11 +7,11 @@ meepzee.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='eno1' ip='
 racknerd
 
 [ct]
+bitwarden.lan
 step.lan
 transmission.lan
 jellyfin.lan
 unifi.lan
-heimdall.lan
 caddy.lan
 immich.lan
-sshca.lan 
+sshca.lan

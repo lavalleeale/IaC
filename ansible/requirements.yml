@@ -9,8 +9,12 @@ roles:
   - name: fubarhouse.golang
   - name: vaspapadopoulos.sysbox
   - name: datadog.datadog
+  - name: breuninger.bitwarden
+    src: https://github.com/e-breuninger/ansible-role-bitwarden
+    scm: git
 collections:
-  - name: maxhoesel.smallstep
-    version: "0.24.0"
+  - name: https://github.com/maxhoesel-ansible/ansible-collection-smallstep
+    type: git
+    version: 1d6fa880261d3e01bfc768bb4e3e6e8049cd5766
 # install command
 # ansible-galaxy install -r requirements.yml

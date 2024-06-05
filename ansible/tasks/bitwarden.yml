@@ -1,0 +1,27 @@
+- name: Copy docker.gpg
+  copy:
+    src: gpg/docker.gpg
+    dest: /etc/apt/trusted.gpg.d/
+- name: Enable docker repo
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - python3-pip
+      - containerd.io
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker==6.1.3
+    - docker-compose
+    - pexpect
+- include_role:
+    name: breuninger.bitwarden
+  vars:
+    bitwarden_ssl_mode: disable
+    bitwarden_domain_name: bitwarden.lavallee.one
+    bitwarden_global_installation_id: 3cb057b6-ef56-40b8-ba9d-b152011bc4c8
+    bitwarden_global_installation_key: NAPbD6jbKods8OaE6M0f
