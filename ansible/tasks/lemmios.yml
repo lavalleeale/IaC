@@ -17,9 +17,9 @@
   with_items:
     - docker
     - docker-compose
-- community.docker.docker_compose:
+- community.docker.docker_compose_v2:
     project_name: lemmios
-    pull: true
+    pull: always
     definition:
       volumes:
         db_data:

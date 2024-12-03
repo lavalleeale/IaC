@@ -27,14 +27,14 @@ jellyfin.lavallee.one {
 }
 
 continuousintegration.lavallee.one {
-    reverse_proxy http://meepzee.lan:8080
+    reverse_proxy http://ci.lan:8080
     tls {
         dns cloudflare {$CF_KEY}
     }
 }
 
 *.ci-proxy.lavallee.one {
-    reverse_proxy http://meepzee.lan:8081
+    reverse_proxy http://ci.lan:8081
     tls {
         dns cloudflare {$CF_KEY}
     }
@@ -56,6 +56,27 @@ lemmy.lavallee.one {
 
 bitwarden.lavallee.one {
     reverse_proxy http://bitwarden.lan
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
+}
+
+jellyseer.lavallee.one {
+    reverse_proxy http://jellyfin.lan:5055
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
+}
+
+sonarr.lavallee.one {
+    reverse_proxy http://jellyfin.lan:8989
+    tls {
+        dns cloudflare {$CF_KEY}
+    }
+}
+
+radarr.lavallee.one {
+    reverse_proxy http://jellyfin.lan:7878
     tls {
         dns cloudflare {$CF_KEY}
     }

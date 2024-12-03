@@ -17,9 +17,9 @@
   with_items:
     - docker
     - docker-compose
-- community.docker.docker_compose:
+- community.docker.docker_compose_v2:
     project_name: immich
-    pull: true
+    pull: always
     definition:
       version: "3.8"
 
@@ -27,7 +27,6 @@
         immich-server:
           container_name: immich_server
           image: ghcr.io/immich-app/immich-server:release
-          entrypoint: ["/bin/sh", "./start-server.sh"]
           volumes:
             - /data:/usr/src/app/upload
           environment:
@@ -41,24 +40,7 @@
             - redis
             - database
           ports:
-            - "80:3001"
-          restart: always
-
-        immich-microservices:
-          container_name: immich_microservices
-          image: ghcr.io/immich-app/immich-server:release
-          entrypoint: ["/bin/sh", "./start-microservices.sh"]
-          environment:
-            TZ: "America/Los_Angeles"
-            DB_HOSTNAME: database
-            DB_USERNAME: postgres
-            DB_PASSWORD: postgres
-            DB_DATABASE_NAME: immich
-          volumes:
-            - /data:/usr/src/app/upload
-          depends_on:
-            - redis
-            - database
+            - "80:2283"
           restart: always
 
         immich-machine-learning:
@@ -88,9 +70,8 @@
             POSTGRES_DB: immich
             PG_DATA: /var/lib/postgresql/data
           volumes:
-            - pgdata:/var/lib/postgresql/data
+            - /data/db:/var/lib/postgresql/data
           restart: always
 
       volumes:
-        pgdata:
         model-cache:

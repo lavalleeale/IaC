@@ -1,15 +1,13 @@
 [pve01]
 alexa-desktop.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='enp7s0' ip='10.0.1.2' cidr='22' gateway='10.0.0.1' mac='a8:a1:59:66:9f:ca' drive='nvme-eui.6479a73b3001db05'
-ubuntuserver.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='enp7s0' ip='10.0.1.1' cidr='22' gateway='10.0.0.1' mac='b4:2e:99:1c:4e:50' drive='ata-ADATA_SU650_2I3520008628'
-meepzee.lan ansible_ssh_extra_args='-o ForwardAgent=yes' bridge_port='eno1' ip='10.0.1.12' cidr='22' gateway='10.0.0.1' mac='a0:36:bc:bc:60:f5' drive='nvme-eui.6479a77710c0030b'
 
 [vps]
 racknerd
 
 [ct]
+ci.lan
 bitwarden.lan
 step.lan
-transmission.lan
 jellyfin.lan
 unifi.lan
 caddy.lan

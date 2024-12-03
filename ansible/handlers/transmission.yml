@@ -1,4 +1,0 @@
-- name: restart transmission-daemon
-  ansible.builtin.service:
-    name: transmission-daemon
-    state: reloaded

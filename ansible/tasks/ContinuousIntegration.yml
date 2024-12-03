@@ -18,10 +18,8 @@
     sysbox_docker_remove_containers: true
 - name: Install docker python package
   ansible.builtin.pip:
-    name: "{{item}}"
-  with_items:
-    - docker
-    - docker-compose
+    break_system_packages: true
+    name: docker
 - name: Copy registry-config.yml
   copy:
     src: config/registry-config.yml
@@ -33,11 +31,22 @@
     force_source: true
     force_tag: true
     source: pull
-- community.docker.docker_compose:
-    project_name: CI
-    pull: true
+- community.docker.docker_compose_v2:
+    project_name: ci
+    pull: always
     definition:
       services:
+        minio:
+          ports:
+            - 9000:9000
+            - 9001:9001
+          volumes:
+            - minio:/data
+          environment:
+            MINIO_ROOT_USER: "{{MINIO_USER}}"
+            MINIO_ROOT_PASSWORD: "{{MINIO_PASSWORD}}"
+          image: quay.io/minio/minio
+          command: server /data --console-address ":9001"
         redis:
           image: redis
         db:
@@ -90,6 +99,9 @@
             GITHUB_CLIENT_SECRET: "{{GITHUB_CLIENT_SECRET}}"
             GITHUB_APP_ID: "{{GITHUB_APP_ID}}"
             GITHUB_KEY: "{{GITHUB_KEY}}"
+            S3_URL: minio:9000
+            S3_ACCESS_KEY_ID: "{{MINIO_USER}}"
+            S3_SECRET_ACCESS_KEY: "{{MINIO_PASSWORD}}"
           volumes:
             - /var/run/docker.sock:/var/run/docker.sock
           depends_on:
@@ -100,9 +112,10 @@
           ports:
             - 8081:80
           environment:
-            - ADDRESS=:http
-            - MAIN_HOST=continuous_integration:8080
-            - PROXY_HOST=10.0.1.12
-            - REDIS_URL=redis://redis:6379
+            ADDRESS: ":http"
+            MAIN_HOST: "continuous_integration:8080"
+            PROXY_HOST: "10.0.1.12"
+            REDIS_URL: "redis://redis:6379"
       volumes:
         db:
+        minio:

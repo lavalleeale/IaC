@@ -1,25 +1,130 @@
-- name: Copy jellyfin_team.gpg and nvidia.gpg
+- name: Copy jellyfin_team.gpg, nvidia.gpg, and docker.gpg
   copy:
     src: "{{item}}"
     dest: /etc/apt/trusted.gpg.d/
   with_items:
     - gpg/jellyfin.gpg
     - gpg/nvidia.gpg
-- name: Enable jellyfin and nvidia repo
+    - gpg/docker.gpg
+- name: Enable jellyfin, nvidia, and docker repo
   apt_repository:
     repo: "{{item}}"
   with_items:
     - "deb https://repo.jellyfin.org/debian bullseye main"
     - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
-- name: Install jellyfin and nvidia
+    - "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install jellyfin, nvidia, and docker
   ansible.builtin.apt:
     pkg:
       - jellyfin
       - libnvcuvid1
       - libnvidia-encode1
+      - docker-ce
+      - python3-pip
+      - containerd.io
     update_cache: true
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
 - name: Allow jellyfin to listen on low ports
   community.general.capabilities:
     path: /usr/lib/jellyfin/bin/jellyfin
     capability: cap_net_bind_service+ep
     state: present
+- name: Install jellyseerr
+  community.docker.docker_compose_v2:
+    project_name: jellyseerr
+    pull: always
+    definition:
+      version: "3.8"
+      services:
+        jellyseerr:
+          image: fallenbagel/jellyseerr:latest
+          container_name: jellyseerr
+          environment:
+            - LOG_LEVEL=debug
+            - TZ=America/Los_Angeles
+            - PORT=5055
+          ports:
+            - 5055:5055
+          volumes:
+            - /usr/share/jellyseerr:/app/config
+          restart: unless-stopped
+        gluetun:
+          restart: always
+          image: qmcgaw/gluetun
+          volumes:
+            - gluetun:/gluetun
+          ports:
+            - "8000:8000"
+            - "9091:9091"
+          cap_add:
+            - NET_ADMIN
+          devices:
+            - /dev/net/tun:/dev/net/tun
+          environment:
+            TZ: "America/Los_Angeles"
+            VPN_SERVICE_PROVIDER: private internet access
+            OPENVPN_USER: "{{OPENVPN_USER}}"
+            OPENVPN_PASSWORD: "{{OPENVPN_PASSWORD}}"
+            SERVER_REGIONS: CA Toronto
+            PRIVATE_INTERNET_ACCESS_VPN_PORT_FORWARDING: "on"
+        transmission:
+          image: linuxserver/transmission
+          network_mode: "service:gluetun"
+          environment:
+            PUID: "1000"
+            PGID: "1000"
+            TZ: "America/Los_Angeles"
+          volumes:
+            - /data/transmission/downloads:/downloads
+            - /data/tv:/tv
+            - /data/private/tv:/private/tv
+            - /data/movies:/movies
+            - /data/transmission/config:/config
+          restart: always
+        radarr:
+          image: lscr.io/linuxserver/radarr:latest
+          container_name: radarr
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Los_Angeles
+          volumes:
+            - /data/radarr/config:/config
+            - /data/movies:/movies
+            - /data/transmission/downloads/complete:/downloads
+          ports:
+            - 7878:7878
+          restart: unless-stopped
+        prowlarr:
+          image: lscr.io/linuxserver/prowlarr:latest
+          container_name: prowlarr
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Los_Angeles
+          volumes:
+            - /data/prowlarr/config:/config
+          ports:
+            - 9696:9696
+          restart: unless-stopped
+        sonarr:
+          image: lscr.io/linuxserver/sonarr:latest
+          container_name: sonarr
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Los_Angeles
+          volumes:
+            - /data/sonarr/config:/config
+            - /data/tv:/tv
+            - /data/transmission/downloads/complete:/downloads
+          ports:
+            - 8989:8989
+          restart: unless-stopped
+      volumes:
+        gluetun:
