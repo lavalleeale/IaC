@@ -1,0 +1,13 @@
+__preset__:
+  overrides:
+    tv_show_directory: "/tv_shows"
+    only_recent_date_range: "1month"
+    title_exclude_keywords:
+      - "#shorts"
+      - "preview"
+      - "trailer"
+    chunk_max_downloads: 20
+Jellyfin TV Show by Date | Max 1080p | Only Recent Archive | Filter Keywords:
+  # Sets genre tag to "Documentaries"
+  = Documentaries:
+    "Channel 5": "https://www.youtube.com/channel/UC-AQKm7HUNMmxjdS371MSwg"

@@ -1,39 +1,52 @@
-- name: Copy jellyfin_team.gpg, nvidia.gpg, and docker.gpg
-  copy:
+# - name: Copy jellyfin_team.gpg, nvidia.gpg, and docker.gpg
+#   copy:
+#     src: "{{item}}"
+#     dest: /etc/apt/trusted.gpg.d/
+#   with_items:
+#     - gpg/jellyfin.gpg
+#     - gpg/nvidia.gpg
+#     - gpg/docker.gpg
+# - name: Enable jellyfin, nvidia, and docker repo
+#   apt_repository:
+#     repo: "{{item}}"
+#   with_items:
+#     - "deb https://repo.jellyfin.org/debian bullseye main"
+#     - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
+#     - "deb https://download.docker.com/linux/debian bullseye stable"
+# - name: Install jellyfin, nvidia, and docker
+#   ansible.builtin.apt:
+#     pkg:
+#       - jellyfin
+#       - libnvcuvid1
+#       - libnvidia-encode1
+#       - docker-ce
+#       - python3-pip
+#       - containerd.io
+#     update_cache: true
+# - name: Install docker python package
+#   ansible.builtin.pip:
+#     name: "{{item}}"
+#   with_items:
+#     - docker
+#     - docker-compose
+# - name: Allow jellyfin to listen on low ports
+#   community.general.capabilities:
+#     path: /usr/lib/jellyfin/bin/jellyfin
+#     capability: cap_net_bind_service+ep
+#     state: present
+- name: Create ytdl-sub config directory
+  ansible.builtin.file:
+    path: /data/ytdl-sub
+    state: directory
+    mode: 0755
+- name: Copy ytdl-sub config
+  ansible.builtin.copy:
     src: "{{item}}"
-    dest: /etc/apt/trusted.gpg.d/
+    dest: /data/ytdl-sub/config/
+    mode: 0755
   with_items:
-    - gpg/jellyfin.gpg
-    - gpg/nvidia.gpg
-    - gpg/docker.gpg
-- name: Enable jellyfin, nvidia, and docker repo
-  apt_repository:
-    repo: "{{item}}"
-  with_items:
-    - "deb https://repo.jellyfin.org/debian bullseye main"
-    - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
-    - "deb https://download.docker.com/linux/debian bullseye stable"
-- name: Install jellyfin, nvidia, and docker
-  ansible.builtin.apt:
-    pkg:
-      - jellyfin
-      - libnvcuvid1
-      - libnvidia-encode1
-      - docker-ce
-      - python3-pip
-      - containerd.io
-    update_cache: true
-- name: Install docker python package
-  ansible.builtin.pip:
-    name: "{{item}}"
-  with_items:
-    - docker
-    - docker-compose
-- name: Allow jellyfin to listen on low ports
-  community.general.capabilities:
-    path: /usr/lib/jellyfin/bin/jellyfin
-    capability: cap_net_bind_service+ep
-    state: present
+    - config/ytdl-sub/cron
+    - config/ytdl-sub/subscriptions.yaml
 - name: Install jellyseerr
   community.docker.docker_compose_v2:
     project_name: jellyseerr
@@ -43,7 +56,6 @@
       services:
         jellyseerr:
           image: fallenbagel/jellyseerr:latest
-          container_name: jellyseerr
           environment:
             - LOG_LEVEL=debug
             - TZ=America/Los_Angeles
@@ -88,7 +100,6 @@
           restart: always
         radarr:
           image: lscr.io/linuxserver/radarr:latest
-          container_name: radarr
           environment:
             - PUID=1000
             - PGID=1000
@@ -102,7 +113,6 @@
           restart: unless-stopped
         prowlarr:
           image: lscr.io/linuxserver/prowlarr:latest
-          container_name: prowlarr
           environment:
             - PUID=1000
             - PGID=1000
@@ -114,7 +124,6 @@
           restart: unless-stopped
         sonarr:
           image: lscr.io/linuxserver/sonarr:latest
-          container_name: sonarr
           environment:
             - PUID=1000
             - PGID=1000
@@ -126,5 +135,16 @@
           ports:
             - 8989:8989
           restart: unless-stopped
+        ytdl-sub:
+          image: ghcr.io/jmbannon/ytdl-sub
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Los_Angeles
+            - CRON_RUN_ON_START=true
+            - CRON_SCHEDULE="0 0 * * *"
+          volumes:
+            - /data/ytdl-sub/config:/config
+            - /data/tv:/tv_shows
       volumes:
         gluetun:

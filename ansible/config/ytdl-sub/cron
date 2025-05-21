@@ -1,0 +1,4 @@
+echo "Beginning cron job..."
+ytdl-sub sub subscriptions.yaml
+# Place your ytdl-sub command(s) here.
+# This script is executed in the same relative path as this file.
