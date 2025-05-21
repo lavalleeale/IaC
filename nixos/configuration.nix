@@ -8,7 +8,6 @@ let
   unstableTarball = fetchTarball
     "https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-unstable.tar.gz";
 in {
-  imports = [ ./hardware-configuration.nix ];
   nixpkgs.config = {
     allowUnfree = true;
     packageOverrides = pkgs: {
@@ -179,7 +178,6 @@ in {
       alex = {
         createHome = true;
         isNormalUser = true;
-        hashedPasswordFile = "/nix/persist/passwords/alex";
         extraGroups = [
           "libvirtd"
           "docker"
@@ -188,9 +186,7 @@ in {
           "adbusers"
           "tss"
         ]; # Enable ‘sudo’ for the user.
-        packages = with pkgs; [ firefox tree ];
       };
-      root.hashedPasswordFile = "/nix/persist/passwords/root";
     };
   };
 
