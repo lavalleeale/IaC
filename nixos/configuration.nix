@@ -162,7 +162,8 @@ in {
     zsh = {
       enable = true;
       shellAliases = {
-        dotfiles = "git --git-dir=$HOME/.dotfiles --work-tree=$HOME";
+        dotfiles =
+          "chezmoi init https://github.com/lavalleeale/.dotfiles && chezmoi apply";
       };
     };
     direnv.enable = true;
@@ -258,6 +259,8 @@ in {
         lua-language-server
         nodejs_22
         php
+        chezmoi
+        waypaper
         pkg-config
         postgresql_14
         python3-custom
@@ -314,10 +317,12 @@ in {
 
       # Desktop and GUI applications
       desktopApps = [
+        catppuccin-papirus-folders
         alacritty
         dolphin
         dunst
         google-chrome
+        firefox
         kitty
         obsidian
         parsec-bin
