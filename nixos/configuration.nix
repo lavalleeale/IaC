@@ -162,6 +162,7 @@ in {
     zsh = {
       enable = true;
       shellAliases = {
+        unlock = "export BW_SESSION=$(bw unlock --raw)";
         dotfiles =
           "chezmoi init https://github.com/lavalleeale/.dotfiles && chezmoi apply";
       };
@@ -214,6 +215,7 @@ in {
     bluetooth.enable = true; # enables support for Bluetooth
     bluetooth.powerOnBoot = true;
     graphics.enable = true;
+    graphics.enable32Bit = true;
   };
 
   environment.systemPackages = with pkgs;
@@ -304,8 +306,14 @@ in {
       ];
 
       # Security and encryption
-      securityTools =
-        [ openssl sbctl tpm2-tools yubikey-manager yubikey-manager-qt ];
+      securityTools = [
+        openssl
+        sbctl
+        tpm2-tools
+        yubikey-manager
+        yubikey-manager-qt
+        bitwarden-cli
+      ];
 
       # Virtualization and containers
       virtTools = [
