@@ -228,6 +228,7 @@ in {
       python3-custom = python3.withPackages (ps:
         with ps; [
           aiohttp
+          pylast
           argparse
           beautifulsoup4
           black
@@ -290,6 +291,7 @@ in {
       sysUtils = [
         bc
         btop
+        playerctl
         dig
         fd
         htop
@@ -301,6 +303,7 @@ in {
         ncdu
         ripgrep
         wget
+        socat
         solaar
         clipman
       ];
@@ -352,7 +355,7 @@ in {
         hyprsunset
         pamixer
         rofi-wayland
-        waybar
+        eww
         wayvnc
         wl-clipboard
         wofi
