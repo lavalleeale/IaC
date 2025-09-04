@@ -56,6 +56,11 @@ in {
       fsType = "btrfs";
       options = [ "subvol=@Programming" ];
     };
+    "/home/alex/Documents/Programming/.snapshots" = {
+      device = "/dev/disk/by-uuid/4bcd078c-f295-4626-a80f-f77d42347411";
+      fsType = "btrfs";
+      options = [ "subvol=@Programming/.snapshots" ];
+    };
     "/" = {
       device = "none";
       fsType = "tmpfs";

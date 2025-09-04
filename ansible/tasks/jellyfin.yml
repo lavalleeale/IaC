@@ -1,39 +1,39 @@
-# - name: Copy jellyfin_team.gpg, nvidia.gpg, and docker.gpg
-#   copy:
-#     src: "{{item}}"
-#     dest: /etc/apt/trusted.gpg.d/
-#   with_items:
-#     - gpg/jellyfin.gpg
-#     - gpg/nvidia.gpg
-#     - gpg/docker.gpg
-# - name: Enable jellyfin, nvidia, and docker repo
-#   apt_repository:
-#     repo: "{{item}}"
-#   with_items:
-#     - "deb https://repo.jellyfin.org/debian bullseye main"
-#     - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
-#     - "deb https://download.docker.com/linux/debian bullseye stable"
-# - name: Install jellyfin, nvidia, and docker
-#   ansible.builtin.apt:
-#     pkg:
-#       - jellyfin
-#       - libnvcuvid1
-#       - libnvidia-encode1
-#       - docker-ce
-#       - python3-pip
-#       - containerd.io
-#     update_cache: true
-# - name: Install docker python package
-#   ansible.builtin.pip:
-#     name: "{{item}}"
-#   with_items:
-#     - docker
-#     - docker-compose
-# - name: Allow jellyfin to listen on low ports
-#   community.general.capabilities:
-#     path: /usr/lib/jellyfin/bin/jellyfin
-#     capability: cap_net_bind_service+ep
-#     state: present
+- name: Copy jellyfin_team.gpg, nvidia.gpg, and docker.gpg
+  copy:
+    src: "{{item}}"
+    dest: /etc/apt/trusted.gpg.d/
+  with_items:
+    - gpg/jellyfin.gpg
+    - gpg/nvidia.gpg
+    - gpg/docker.gpg
+- name: Enable jellyfin, nvidia, and docker repo
+  apt_repository:
+    repo: "{{item}}"
+  with_items:
+    - "deb https://repo.jellyfin.org/debian bullseye main"
+    - "deb https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /"
+    - "deb https://download.docker.com/linux/debian bullseye stable"
+- name: Install jellyfin, nvidia, and docker
+  ansible.builtin.apt:
+    pkg:
+      - jellyfin
+      - libnvcuvid1
+      - libnvidia-encode1
+      - docker-ce
+      - python3-pip
+      - containerd.io
+    update_cache: true
+- name: Install docker python package
+  ansible.builtin.pip:
+    name: "{{item}}"
+  with_items:
+    - docker
+    - docker-compose
+- name: Allow jellyfin to listen on low ports
+  community.general.capabilities:
+    path: /usr/lib/jellyfin/bin/jellyfin
+    capability: cap_net_bind_service+ep
+    state: present
 - name: Create ytdl-sub config directory
   ansible.builtin.file:
     path: /data/ytdl-sub

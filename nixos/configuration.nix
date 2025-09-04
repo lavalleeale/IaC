@@ -85,6 +85,7 @@ in {
   };
   services = {
     udev.extraRules = ''
+      KERNEL=="uinput", GROUP="input", TAG+="uaccess"
       ACTION != "add", GOTO="solaar_end"
       SUBSYSTEM != "hidraw", GOTO="solaar_end"
 
@@ -187,6 +188,7 @@ in {
           "vboxusers"
           "adbusers"
           "tss"
+          "input"
         ]; # Enable ‘sudo’ for the user.
       };
     };
@@ -216,6 +218,7 @@ in {
     bluetooth.powerOnBoot = true;
     graphics.enable = true;
     graphics.enable32Bit = true;
+    uinput.enable = true;
   };
 
   environment.systemPackages = with pkgs;
@@ -225,6 +228,10 @@ in {
       };
       launcher = (builtins.getFlake
         "github:lavalleeale/gorg").packages.${pkgs.system}.default;
+      clipboard = (builtins.getFlake
+        "github:lavalleeale/wl-paste-cpp").packages.${pkgs.system}.default;
+      zen-browser = (builtins.getFlake
+        "github:0xc000022070/zen-browser-flake").packages.${pkgs.system}.default;
       python3-custom = python3.withPackages (ps:
         with ps; [
           aiohttp
@@ -272,7 +279,8 @@ in {
         sqlite
         usbutils
         yarn
-        jre_minimal
+        jdk
+        jetbrains.idea-ultimate
         file
         slurp
       ];
@@ -306,17 +314,13 @@ in {
         socat
         solaar
         clipman
+        xremap
+        trash-cli
       ];
 
       # Security and encryption
-      securityTools = [
-        openssl
-        sbctl
-        tpm2-tools
-        yubikey-manager
-        yubikey-manager-qt
-        bitwarden-cli
-      ];
+      securityTools =
+        [ openssl sbctl tpm2-tools yubikey-manager bitwarden-cli ];
 
       # Virtualization and containers
       virtTools = [
@@ -330,13 +334,15 @@ in {
       desktopApps = [
         catppuccin-papirus-folders
         alacritty
-        dolphin
+        kdePackages.dolphin
         dunst
         google-chrome
         firefox
+        zen-browser
         kitty
         obsidian
         parsec-bin
+        ledger-live-desktop
         postman
         prismlauncher
         tetrio-desktop
@@ -367,6 +373,7 @@ in {
         atuin
         cachix
         cypress
+        gemini-cli
         gh
         jq
         niv
@@ -392,6 +399,7 @@ in {
         eza
         flintlock
         launcher
+        clipboard
         libimobiledevice
         libisoburn
         linuxKernel.packages.linux_zen.perf
@@ -413,7 +421,8 @@ in {
     font-awesome
     powerline-fonts
     powerline-symbols
-    (nerdfonts.override { fonts = [ "FiraCode" "DroidSansMono" ]; })
+    nerd-fonts.fira-code
+    nerd-fonts.droid-sans-mono
   ];
 
   specialisation = {
