@@ -1,14 +1,13 @@
-{ lib, config, pkgs, hyprland-plugins, ... }:
+{ lib, config, pkgs, hyprland-plugins, uiSettings ? { }, ... }:
 
 let
   stripFirst = s: builtins.substring 1 (builtins.stringLength s - 1) s;
-in
-{
+  hyprlandMonitors = uiSettings.hyprlandMonitors or [ ",preferred,auto,auto" ];
+in lib.mkIf (uiSettings.graphical or true) {
   wayland.windowManager.hyprland = {
     enable = true;
-    plugins =
-      let plugins = hyprland-plugins.packages.${pkgs.system};
-      in [ plugins.hyprexpo ];
+    plugins = let plugins = hyprland-plugins.packages.${pkgs.system};
+    in [ plugins.hyprexpo ];
     settings = {
       plugin = { hyprexpo = { columns = 2; }; };
       general = {
@@ -50,10 +49,7 @@ in
         force_default_wallpaper = 1;
         disable_hyprland_logo = true;
       };
-      gestures = {
-        workspace_swipe = true;
-        workspace_swipe_fingers = 4;
-      };
+      gesture = "4, horizontal, workspace";
       input = {
         kb_layout = "us";
         follow_mouse = 1;
@@ -78,7 +74,7 @@ in
         }
       ];
       xwayland.force_zero_scaling = true;
-      monitor = [ ",preferred,auto,auto" "eDP-1,2256x1504@60,0x0,1.175" ];
+      monitor = hyprlandMonitors;
       env = [
         "XCURSOR_SIZE,24"
         "HYPRCURSOR_SIZE,24"
@@ -100,7 +96,6 @@ in
         "waybar"
         "xremap $HOME/.config/xremap/config.yml"
         "sleep 1 && wl-copy-slurp"
-        "$(dirname $(readlink $(which kdeconnect-app)))/../libexec/kdeconnectd "
         "[workspace $zenWorkspace silent] zen-beta"
         "[workspace $terminalWorkspace silent] alacritty"
         "[workspace $codeWorkspace silent] code"
@@ -159,7 +154,6 @@ in
         ",XF86MonBrightnessDown, exec, brightnessctl s 10%-"
         "SHIFT,XF86MonBrightnessUp, exec, hyprctl hyprsunset identity"
         "SHIFT,XF86MonBrightnessDown, exec, hyprctl hyprsunset temperature 1000"
-        ",XF86AudioMedia, hyprexpo:expo, toggle"
       ];
       bindl = [
         ", XF86AudioNext, exec, playerctl next"
@@ -176,16 +170,13 @@ in
         "pin, title:Picture-in-Picture"
         "size 30% 30%, title:Picture-in-Picture"
       ];
-    } // lib.genAttrs
-      ((builtins.genList (i: "$color" + toString i) 16)
-        ++ [ "$background" "$foreground" "$cursor" ])
-      (name:
+    } // lib.genAttrs ((builtins.genList (i: "$color" + toString i) 16)
+      ++ [ "$background" "$foreground" "$cursor" ]) (name:
         let key = stripFirst name;
-        in
-        "rgb(" + stripFirst
-          (if lib.hasAttr key config.pywal-nix.colourScheme.colours then
-            config.pywal-nix.colourScheme.colours.${key}
-          else
-            config.pywal-nix.colourScheme.special.${key}) + ")");
+        in "rgb(" + stripFirst
+        (if lib.hasAttr key config.pywal-nix.colourScheme.colours then
+          config.pywal-nix.colourScheme.colours.${key}
+        else
+          config.pywal-nix.colourScheme.special.${key}) + ")");
   };
 }

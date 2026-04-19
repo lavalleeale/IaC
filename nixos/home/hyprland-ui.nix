@@ -1,6 +1,64 @@
-{ config, ... }:
+{ config, lib, uiSettings ? { }, ... }:
 
-{
+let
+  batteryPath = uiSettings.batteryPath or null;
+  temperaturePath = uiSettings.temperaturePath or null;
+  networkInterface = uiSettings.networkInterface or null;
+  hyprlockWallpaper =
+    uiSettings.hyprlockWallpaper or config.pywal-nix.colourScheme.wallpaper;
+  hyprlockProfileImage = uiSettings.hyprlockProfileImage or null;
+  waybarRightModules = [ "network" ]
+    ++ lib.optionals (temperaturePath != null) [ "temperature" ]
+    ++ [ "cpu" "memory" ]
+    ++ lib.optionals (batteryPath != null) [ "battery" ];
+  hyprlockLabels = [
+    {
+      monitor = "";
+      text = ''cmd[update:1000] date +"%A, %B %d"'';
+      color = "rgba(242, 243, 244, 0.75)";
+      font_size = 22;
+      font_family = "JetBrains Mono";
+      position = "0, 350";
+      halign = "center";
+      valign = "center";
+    }
+    {
+      text = "$FPRINTPROMPT";
+    }
+    {
+      monitor = "";
+      text = ''cmd[update:1000] date +"%-I:%M"'';
+      color = "rgba(242, 243, 244, 0.75)";
+      font_size = 95;
+      font_family = "JetBrains Mono Extrabold";
+      position = "0, 200";
+      halign = "center";
+      valign = "center";
+    }
+    {
+      monitor = "";
+      text = "cmd[update:1000] id -nu";
+      color = "rgb(ffffff)";
+      font_size = 14;
+      font_family = "JetBrains Mono";
+      position = "0, -10";
+      halign = "center";
+      valign = "top";
+    }
+  ] ++ lib.optionals (batteryPath != null) [
+    {
+      monitor = "";
+      text = "cmd[update:1000] cat ${batteryPath}";
+      color = "rgb(ffffff)";
+      font_size = 24;
+      font_family = "JetBrains Mono";
+      position = "-90, -10";
+      halign = "right";
+      valign = "top";
+    }
+  ];
+in
+lib.mkIf (uiSettings.graphical or true) {
   services = {
     dunst = {
       enable = true;
@@ -65,10 +123,10 @@
   programs = {
     hyprlock = {
       enable = true;
-      settings = {
+      settings = ({
         background = {
           monitor = "";
-          path = "/home/alex/Pictures/wallpapers/current";
+          path = hyprlockWallpaper;
           color = "rgba(0, 0, 0, 0)";
           blur_passes = 2;
           contrast = 1;
@@ -108,54 +166,11 @@
           halign = "center";
           valign = "center";
         };
-        label = [
-          {
-            monitor = "";
-            text = ''cmd[update:1000] date +"%A, %B %d"'';
-            color = "rgba(242, 243, 244, 0.75)";
-            font_size = 22;
-            font_family = "JetBrains Mono";
-            position = "0, 350";
-            halign = "center";
-            valign = "center";
-          }
-          {
-            text = "$FPRINTPROMPT";
-          }
-          {
-            monitor = "";
-            text = ''cmd[update:1000] date +"%-I:%M"'';
-            color = "rgba(242, 243, 244, 0.75)";
-            font_size = 95;
-            font_family = "JetBrains Mono Extrabold";
-            position = "0, 200";
-            halign = "center";
-            valign = "center";
-          }
-          {
-            monitor = "";
-            text = "cmd[update:1000] id -nu";
-            color = "rgb(ffffff)";
-            font_size = 14;
-            font_family = "JetBrains Mono";
-            position = "0, -10";
-            halign = "center";
-            valign = "top";
-          }
-          {
-            monitor = "";
-            text = "cmd[update:1000] cat /sys/class/power_supply/BAT1/capacity";
-            color = "rgb(ffffff)";
-            font_size = 24;
-            font_family = "JetBrains Mono";
-            position = "-90, -10";
-            halign = "right";
-            valign = "top";
-          }
-        ];
+        label = hyprlockLabels;
+      } // lib.optionalAttrs (hyprlockProfileImage != null) {
         image = {
           monitor = "";
-          path = "/home/alex/Pictures/profile.png";
+          path = hyprlockProfileImage;
           size = 100;
           border_size = 2;
           border_color = "rgb(ffffff)";
@@ -163,7 +178,7 @@
           halign = "center";
           valign = "center";
         };
-      };
+      });
     };
 
     waybar = {
@@ -275,7 +290,7 @@
         }
       '';
       settings = {
-        mainBar = {
+        mainBar = ({
           reload_style_on_change = true;
           layer = "top";
           position = "top";
@@ -288,7 +303,7 @@
             "custom/nextevent"
           ];
           modules-center = [ "clock" ];
-          modules-right = [ "network" "temperature" "cpu" "memory" "battery" ];
+          modules-right = waybarRightModules;
           "hyprland/workspaces" = { format = "{name}"; };
           "hyprland/submap" = { format = ''<span style="italic">{}</span>''; };
           clock = {
@@ -303,27 +318,10 @@
             tooltip = false;
           };
           memory = { format = "{}% "; };
-          temperature = {
-            hwmon-path = "/sys/class/hwmon/hwmon5/temp1_input";
-            critical-threshold = 80;
-          };
           backlight = {
             format = "{percent}% {icon}";
             reverse-scrolling = true;
             format-icons = [ "" "" "" "" "" "" "" "" "" ];
-          };
-          battery = {
-            states = {
-              warning = 30;
-              critical = 15;
-            };
-            format = "{capacity}% {icon}";
-            format-full = "{capacity}% {icon}";
-            format-charging = "{capacity}% ";
-            format-plugged = "{capacity}% ";
-            format-alt = "{time} {icon}";
-            format-icons = [ "" "" "" "" "" ];
-            interval = 1;
           };
           power-profiles-daemon = {
             format = "{icon}";
@@ -338,16 +336,18 @@
               power-saver = "";
             };
           };
-          network = {
-            interface = "wlp*";
-            format-wifi = "{essid} ({signalStrength}%) ";
-            format-ethernet = "{ipaddr}/{cidr} ";
-            tooltip-format = "{ifname} via {gwaddr} ";
-            format-linked = "{ifname} (No IP) ";
-            format-disconnected = "Disconnected ⚠";
-            format-alt = "{ifname}: {ipaddr}/{cidr}";
-            tooltip = true;
-          };
+          network =
+            {
+              format-wifi = "{essid} ({signalStrength}%) ";
+              format-ethernet = "{ipaddr}/{cidr} ";
+              tooltip-format = "{ifname} via {gwaddr} ";
+              format-linked = "{ifname} (No IP) ";
+              format-disconnected = "Disconnected ⚠";
+              format-alt = "{ifname}: {ipaddr}/{cidr}";
+              tooltip = true;
+            } // lib.optionalAttrs (networkInterface != null) {
+              interface = networkInterface;
+            };
           pulseaudio = {
             format = "{volume}% {icon}";
             format-bluetooth = "{volume}% {icon} {format_source}";
@@ -397,7 +397,26 @@
             interval = 60;
             exec = "nextevent $HOME/Calendars/racs.ics";
           };
-        };
+        } // lib.optionalAttrs (temperaturePath != null) {
+          temperature = {
+            hwmon-path = temperaturePath;
+            critical-threshold = 80;
+          };
+        } // lib.optionalAttrs (batteryPath != null) {
+          battery = {
+            states = {
+              warning = 30;
+              critical = 15;
+            };
+            format = "{capacity}% {icon}";
+            format-full = "{capacity}% {icon}";
+            format-charging = "{capacity}% ";
+            format-plugged = "{capacity}% ";
+            format-alt = "{time} {icon}";
+            format-icons = [ "" "" "" "" "" ];
+            interval = 1;
+          };
+        });
       };
     };
   };

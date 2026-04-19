@@ -19,6 +19,7 @@
         configurationLimit = 2;
       };
       efi.canTouchEfiVariables = true;
+    };
   };
 
   fileSystems."/" = {

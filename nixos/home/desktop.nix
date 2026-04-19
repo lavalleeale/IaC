@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, uiSettings ? { graphical = true; }, ... }:
 
-{
+lib.mkIf (uiSettings.graphical or true) {
   qt = {
     enable = true;
     platformTheme.name = "adwaita";

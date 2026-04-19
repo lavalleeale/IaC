@@ -1,9 +1,10 @@
-{ pkgs, pkgs-unstable, ... }:
+{ lib, pkgs, pkgs-unstable, uiSettings ? { graphical = true; }, ... }:
 
 {
   home.packages = with pkgs;
     let
-      mediaTools = [ imagemagick plasma5Packages.kdeconnect-kde ];
+      graphical = uiSettings.graphical or true;
+      mediaTools = [ imagemagick ];
 
       scienceTools = [ mars-mips texlive-custom ];
       texlive-custom = texlive.combine {
@@ -45,20 +46,13 @@
         postman
         prismlauncher
         tetrio-desktop
-        tor-browser-bundle-bin
+        tor-browser
         vesktop
         vlc
       ];
 
-      waylandTools = [
-        brightnessctl
-        hyprshot
-        hyprsunset
-        pamixer
-        rofi-wayland
-        wayvnc
-        wl-clipboard
-      ];
+      waylandTools =
+        [ brightnessctl hyprshot hyprsunset pamixer rofi wayvnc wl-clipboard ];
 
       otherUtils = [
         borgbackup
@@ -95,9 +89,9 @@
         nixfmt-classic
         nixpkgs-fmt
         starship
-        thefuck
         zoxide
       ];
     in devUtils ++ mediaTools ++ scienceTools ++ securityTools ++ virtTools
-    ++ desktopApps ++ waylandTools ++ otherUtils ++ editors;
+    ++ lib.optionals graphical (desktopApps ++ waylandTools) ++ otherUtils
+    ++ editors;
 }

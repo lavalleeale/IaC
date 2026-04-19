@@ -9,7 +9,6 @@
     ls = "eza";
     ll = "eza -l";
     nix-s = "nix-shell --run $SHELL -p";
-    f = "fuck --yeah";
     buildhome =
       "home-manager switch --flake ~/Documents/Programming/IaC/nixos#alex --cores 0 --option keep-going true -j auto";
   };
@@ -59,7 +58,6 @@
     };
 
     atuin.enable = true;
-    thefuck.enable = true;
 
     starship = {
       enable = true;

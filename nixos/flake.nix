@@ -1,19 +1,19 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.05";
+    nixpkgs.url = "nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     impermanence.url = "github:nix-community/impermanence";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     pywal-nix = {
-      url = "github:Fuwn/pywal.nix";
-      inputs.nixpkgs.follows = "nixpkgs"; # Recommended
+      url = "github:lavalleeale-forks/pywal.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.2";
+      url = "github:nix-community/lanzaboote/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser-flake = {
@@ -29,12 +29,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hyprland = {
-      url = "github:hyprwm/hyprland/v0.49.0";
+      url = "github:hyprwm/hyprland/v0.53.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     hyprland-plugins = {
-      url = "github:hyprwm/hyprland-plugins/v0.49.0-fix";
+      url = "github:hyprwm/hyprland-plugins/v0.53.0";
       inputs.hyprland.follows = "hyprland";
     };
     authentik-nix = {
@@ -47,8 +46,9 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, ... }:
+  outputs = inputs@{ nixpkgs, ... }:
     let
+      inherit (nixpkgs) lib;
       system = "x86_64-linux";
       sharedConfig = { allowUnfree = true; };
       overlay = final: prev: {
@@ -65,78 +65,143 @@
         inherit system;
         config = sharedConfig;
       };
-      hyprland-plugins = inputs.hyprland-plugins;
-      homeModule = import ./home.nix;
+
+      homeBaseModule = import ./home.nix;
+      homeDesktopModule = {
+        imports =
+          [ ./home/desktop.nix ./home/hyprland.nix ./home/hyprland-ui.nix ];
+      };
       homeManagerSharedModules =
         [ inputs.pywal-nix.homeManagerModules.${system}.default ];
-      homeManagerExtraSpecialArgs = { inherit hyprland-plugins pkgs-unstable; };
+
+      commonSpecialArgs = { inherit pkgs-unstable; };
+
+      commonHomeSpecialArgs = commonSpecialArgs // {
+        hyprland-plugins = inputs.hyprland-plugins;
+      };
+
+      nixpkgsModule = {
+        nixpkgs = {
+          config = sharedConfig;
+          overlays = [ overlay ];
+        };
+      };
+
+      registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
+
+      mkUiSettings = { graphical ? false, batteryPath ? null
+        , temperaturePath ? null, networkInterface ? null
+        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
+        , hyprlandMonitors ? [ ",preferred,auto,auto" ], }: {
+          inherit graphical batteryPath temperaturePath networkInterface
+            hyprlockWallpaper hyprlockProfileImage hyprlandMonitors;
+        };
+
+      mkHomeModule = { graphical, ... }: {
+        imports = [ homeBaseModule ]
+          ++ lib.optionals graphical [ homeDesktopModule ];
+      };
+
+      mkHomeManagerModule = { graphical, uiSettings }: {
+        home-manager = {
+          useGlobalPkgs = true;
+          useUserPackages = true;
+          users.alex = mkHomeModule { inherit graphical uiSettings; };
+          backupFileExtension = "backup";
+          sharedModules = homeManagerSharedModules;
+          extraSpecialArgs = commonHomeSpecialArgs // { inherit uiSettings; };
+        };
+      };
+
+      mkHost = { graphical ? false
+        , uiSettings ? mkUiSettings { inherit graphical; }, modules }:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = commonSpecialArgs;
+          modules = [
+            nixpkgsModule
+            (mkHomeManagerModule { inherit graphical uiSettings; })
+            inputs.home-manager.nixosModules.home-manager
+          ] ++ modules ++ [ registryModule ];
+        };
+
+      laptopUiSettings = mkUiSettings {
+        graphical = true;
+        batteryPath = "/sys/class/power_supply/BAT1/capacity";
+        temperaturePath = "/sys/class/hwmon/hwmon5/temp1_input";
+        networkInterface = "wlp*";
+        hyprlockWallpaper = "/home/alex/Pictures/wallpapers/current";
+        hyprlockProfileImage = "/home/alex/Pictures/profile.png";
+        hyprlandMonitors =
+          [ ",preferred,auto,auto" "eDP-1,2256x1504@60,0x0,1.175" ];
+      };
+
+      desktopUiSettings = mkUiSettings { graphical = true; };
     in {
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
-          extraSpecialArgs = homeManagerExtraSpecialArgs;
-          modules = homeManagerSharedModules ++ [ homeModule ];
+          extraSpecialArgs = commonHomeSpecialArgs // {
+            uiSettings = laptopUiSettings;
+          };
+          modules = homeManagerSharedModules ++ [
+            (mkHomeModule {
+              graphical = true;
+              uiSettings = laptopUiSettings;
+            })
+          ];
         };
       };
 
       nixosConfigurations = {
-        server = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit pkgs-unstable; };
+        laptop = mkHost {
+          graphical = true;
+          uiSettings = laptopUiSettings;
           modules = [
-            ({ ... }: {
-              nixpkgs = {
-                config = sharedConfig;
-                overlays = [ overlay ];
-              };
-            })
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                users.alex = homeModule;
-                backupFileExtension = "backup";
-                sharedModules = homeManagerSharedModules;
-                extraSpecialArgs = homeManagerExtraSpecialArgs;
-              };
-              users.users.root.initialPassword = "changeme";
-            }
-            inputs.sops-nix.nixosModules.sops
-            inputs.home-manager.nixosModules.home-manager
-            inputs.authentik-nix.nixosModules.default
-            ./configuration.nix
-            ./server.nix
-            ./laptop-hardware-configuration.nix
-            ({ ... }: { nix.registry.nixpkgs.flake = nixpkgs; })
-          ];
-        };
-        laptop = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit pkgs-unstable; };
-          modules = [
-            ({ ... }: {
-              nixpkgs = {
-                config = sharedConfig;
-                overlays = [ overlay ];
-              };
-            })
             inputs.lanzaboote.nixosModules.lanzaboote
             inputs.impermanence.nixosModules.impermanence
             inputs.nixos-hardware.nixosModules.framework-13-7040-amd
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                users.alex = homeModule;
-                backupFileExtension = "backup";
-                sharedModules = homeManagerSharedModules;
-                extraSpecialArgs = homeManagerExtraSpecialArgs;
-              };
-            }
             inputs.sops-nix.nixosModules.sops
-            inputs.home-manager.nixosModules.home-manager
+            ./configuration.nix
             ./laptop.nix
             ./laptop-hardware-configuration.nix
+          ];
+        };
+
+        desktop = mkHost {
+          graphical = true;
+          uiSettings = desktopUiSettings;
+          modules = [
             ./configuration.nix
-            ({ ... }: { nix.registry.nixpkgs.flake = nixpkgs; })
+            ./desktop.nix
+            ./desktop-hardware-configuration.nix
+          ];
+        };
+
+        server = mkHost {
+          modules = [
+            inputs.sops-nix.nixosModules.sops
+            inputs.authentik-nix.nixosModules.default
+            ({ pkgs, ... }:
+              let
+                authentikScope =
+                  inputs.authentik-nix.lib.mkAuthentikScope { inherit pkgs; };
+                patchedAuthentikScope = authentikScope.overrideScope
+                  (final: prev: {
+                    authentikComponents = prev.authentikComponents // {
+                      gopkgs = prev.authentikComponents.gopkgs.overrideAttrs
+                        (_: {
+                          vendorHash =
+                            "sha256-J9z9MZheUkwJzMXBy9BOYeX8oR82vV+UFMC4hRJcQvA=";
+                        });
+                    };
+                  });
+              in {
+                services.authentik.authentikComponents =
+                  patchedAuthentikScope.authentikComponents;
+              })
+            ./configuration.nix
+            ./server.nix
           ];
         };
       };

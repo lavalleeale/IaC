@@ -5,31 +5,36 @@
       pkiBundle = "/etc/secureboot";
     };
   };
-  environment.persistence."/nix/persist" = {
-    directories = [
-      "/etc/ssh"
-      "/etc/nixos"
-      "/etc/secureboot"
-      "/var/log"
-      "/var/lib/docker"
-      "/var/lib/nixos"
-      "/var/lib/fprint"
-      "/var/lib/bluetooth"
-      {
-        directory = "/var/lib/private";
-        mode = "u=rwx,g=,o=";
-      }
-      "/var/lib/tailscale"
-      "/etc/NetworkManager/system-connections"
-      "/root"
-    ];
-    files = [
-      "/etc/machine-id"
-      {
-        file = "/etc/nix/id_rsa";
-        parentDirectory = { mode = "u=rwx,g=rw,o=rw"; };
-      }
-    ];
+  users.mutableUsers = false;
+  environment = {
+    pathsToLink = [ "/share/applications" "/share/xdg-desktop-portal" ];
+
+    persistence."/nix/persist" = {
+      directories = [
+        "/etc/ssh"
+        "/etc/nixos"
+        "/etc/secureboot"
+        "/var/log"
+        "/var/lib/docker"
+        "/var/lib/nixos"
+        "/var/lib/fprint"
+        "/var/lib/bluetooth"
+        {
+          directory = "/var/lib/private";
+          mode = "u=rwx,g=,o=";
+        }
+        "/var/lib/tailscale"
+        "/etc/NetworkManager/system-connections"
+        "/root"
+      ];
+      files = [
+        "/etc/machine-id"
+        {
+          file = "/etc/nix/id_rsa";
+          parentDirectory = { mode = "u=rwx,g=rw,o=rw"; };
+        }
+      ];
+    };
   };
   virtualisation = {
     libvirtd = {
@@ -38,15 +43,6 @@
         package = pkgs.qemu_kvm;
         runAsRoot = true;
         swtpm.enable = true;
-        ovmf = {
-          enable = true;
-          packages = [
-            (pkgs.OVMF.override {
-              secureBoot = true;
-              tpmSupport = true;
-            }).fd
-          ];
-        };
       };
     };
     containerd.enable = true;
@@ -100,9 +96,7 @@
     gvfs.enable = true;
     pcscd.enable = true;
     printing.enable = true;
-    logind.extraConfig = ''
-      HandlePowerKey=suspend
-    '';
+    logind.settings.Login.HandlePowerKey = "suspend";
     snapper = {
       configs = {
         "programming" = {

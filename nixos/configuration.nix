@@ -14,7 +14,7 @@
     openssh = {
       enable = true;
       ports = [ 22 ];
-      settings.PermitRootLogin = "yes";
+      settings.PermitRootLogin = "no";
     };
     avahi = {
       enable = true;
@@ -23,12 +23,11 @@
     };
     fwupd.enable = true;
     tailscale.enable = true;
-    nixseparatedebuginfod.enable = true;
+    nixseparatedebuginfod2.enable = true;
     devmon.enable = true;
   };
   programs.zsh.enable = true;
   users = {
-    mutableUsers = false;
     defaultUserShell = pkgs.zsh;
     users = {
       alex = {
@@ -113,7 +112,7 @@
         usbutils
         yarn
         jdk
-        jetbrains.idea-ultimate
+        jetbrains.idea
         file
         slurp
       ];
@@ -159,4 +158,3 @@
   };
   system.stateVersion = "25.05"; # Did you read the comment?
 }
-

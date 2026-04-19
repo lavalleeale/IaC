@@ -1,7 +1,18 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, pkgs-unstable, ... }: {
+  boot.loader.grub.device = "nodev";
+  fileSystems."/" = {
+    device = "none";
+    fsType = "tmpfs";
+  };
+  nixpkgs.config.permittedInsecurePackages = [ "mongodb-7.0.25" ];
   virtualisation.vmVariant = {
     virtualisation.memorySize = 8096;
     virtualisation.forwardPorts = [
+      {
+        host.port = 8000;
+        guest.port = 8000;
+        from = "host";
+      }
       {
         host.port = 9000;
         guest.port = 9000;
@@ -24,7 +35,7 @@
       }
     ];
   };
-  networking.firewall.allowedTCPPorts = [ 8443 9000 2222 2283 ];
+  networking.firewall.allowedTCPPorts = [ 8000 8443 9000 2222 2283 ];
   services = {
     immich = { enable = true; };
     authentik = {
@@ -33,15 +44,9 @@
       # Best use something like sops-nix or agenix to manage it
       environmentFile = config.sops.secrets.authentik-env.path;
       settings = {
-        email = {
-          host = "smtp.example.com";
-          port = 587;
-          username = "authentik@example.com";
-          use_tls = true;
-          use_ssl = false;
-          from = "authentik@example.com";
-        };
         disable_startup_analytics = true;
+        disable_update_check = true;
+        error_reporting.enabled = false;
         avatars = "initials";
       };
     };
@@ -56,6 +61,7 @@
     unifi = {
       enable = true;
       openFirewall = true;
+      unifiPackage = pkgs-unstable.unifi;
     };
   };
   sops = {
@@ -66,4 +72,13 @@
     # This is the actual specification of the secrets.
     secrets.authentik-env = { };
   };
+  systemd.services.authentik.environment = {
+    AUTHENTIK_BOOTSTRAP_EMAIL = "akadmin@localhost";
+    AUTHENTIK_BOOTSTRAP_PASSWORD = "test";
+  };
+  systemd.services.authentik-worker.environment = {
+    AUTHENTIK_BOOTSTRAP_EMAIL = "akadmin@localhost";
+    AUTHENTIK_BOOTSTRAP_PASSWORD = "test";
+  };
+  users.users.root.hashedPassword = "!";
 }
