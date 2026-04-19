@@ -300,7 +300,6 @@ in {
         "float, title:Picture-in-Picture"
         "pin, title:Picture-in-Picture"
         "size 30% 30%, title:Picture-in-Picture"
-        "float, title:^Extension"
       ];
     } // lib.genAttrs ((builtins.genList (i: "$color" + toString i) 16)
       ++ [ "$background" "$foreground" "$cursor" ]) (name:
