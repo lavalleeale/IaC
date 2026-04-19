@@ -3,6 +3,7 @@
 *.pf2
 *.deb
 *.iso
+*.qcow2
 initrd
 linux
 vmlinuz

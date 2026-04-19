@@ -2,180 +2,33 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 
-let
-  unstableTarball = fetchTarball
-    "https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-unstable.tar.gz";
-in {
-  nixpkgs.config = {
-    allowUnfree = true;
-    packageOverrides = pkgs: {
-      unstable = import unstableTarball { config = config.nixpkgs.config; };
-    };
-    permittedInsecurePackages =
-      [ "dotnet-sdk-wrapped-7.0.410" "dotnet-sdk-7.0.410" ];
+{
+  boot.kernel.sysctl = {
+    "fs.file-max" = "1048576"; # Example value
   };
-  networking = {
-    firewall = {
-      enable = true;
-      extraCommands = ''
-        # Allow traffic from virbr0
-        iptables -A FORWARD -i virbr0 -j ACCEPT
-        iptables -A FORWARD -o virbr0 -j ACCEPT
-        iptables -t nat -A POSTROUTING -s 192.168.122.0/24 -o wlp1s0 -j MASQUERADE
-      '';
-    };
-  };
+  time.timeZone = "America/Los_Angeles";
 
-  time.timeZone = "America/New_York";
-
-  security = {
-    tpm2 = {
-      enable = true;
-      pkcs11.enable = true;
-    };
-    sudo = {
-      enable = true;
-      extraRules = [{
-        commands = [
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool fanduty *";
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool autofanctrl";
-            options = [ "NOPASSWD" ];
-          }
-        ];
-        groups = [ "wheel" ];
-      }];
-    };
-  };
-
-  virtualisation = {
-    libvirtd = {
-      enable = true;
-      qemu = {
-        package = pkgs.qemu_kvm;
-        runAsRoot = true;
-        swtpm.enable = true;
-        ovmf = {
-          enable = true;
-          packages = [
-            (pkgs.OVMF.override {
-              secureBoot = true;
-              tpmSupport = true;
-            }).fd
-          ];
-        };
-      };
-    };
-    containerd.enable = true;
-    vmVariant = {
-      # following configuration is added only when building VM with build-vm
-      virtualisation = {
-        memorySize = 8192;
-        cores = 4;
-        qemu.options = [ "-device" "virtio-vga" ];
-      };
-    };
-    docker.enable = true;
-    virtualbox.host.enable = true;
-  };
   services = {
-    udev.extraRules = ''
-      KERNEL=="uinput", GROUP="input", TAG+="uaccess"
-      ACTION != "add", GOTO="solaar_end"
-      SUBSYSTEM != "hidraw", GOTO="solaar_end"
-
-      # USB-connected Logitech receivers and devices
-      ATTRS{idVendor}=="046d", GOTO="solaar_apply"
-
-      # Lenovo nano receiver
-      ATTRS{idVendor}=="17ef", ATTRS{idProduct}=="6042", GOTO="solaar_apply"
-
-      # Bluetooth-connected Logitech devices
-      KERNELS == "0005:046D:*", GOTO="solaar_apply"
-
-      GOTO="solaar_end"
-
-      LABEL="solaar_apply"
-
-      # Allow any seated user to access the receiver.
-      # uaccess: modern ACL-enabled udev
-      TAG+="uaccess"
-
-      # Grant members of the "plugdev" group access to receiver (useful for SSH users)
-      #MODE="0660", GROUP="plugdev"
-
-      LABEL="solaar_end"
-    '';
-    printing.enable = true;
-    open-webui.enable = true;
-    ollama.enable = true;
-    pcscd.enable = true;
+    openssh = {
+      enable = true;
+      ports = [ 22 ];
+      settings.PermitRootLogin = "yes";
+    };
     avahi = {
       enable = true;
       nssmdns4 = true;
       nssmdns6 = true;
     };
     fwupd.enable = true;
-    tor = {
-      enable = false;
-      enableGeoIP = false;
-      relay.onionServices = {
-        myOnion = {
-          version = 3;
-          map = [{
-            port = 80;
-            target = {
-              addr = "[::1]";
-              port = 8080;
-            };
-          }];
-        };
-      };
-      settings = {
-        ClientUseIPv4 = false;
-        ClientUseIPv6 = true;
-        ClientPreferIPv6ORPort = true;
-      };
-    };
     tailscale.enable = true;
     nixseparatedebuginfod.enable = true;
-    gnome.gnome-keyring.enable = true;
-    geoclue2.enable = true;
-    hardware = { bolt.enable = true; };
-    logind.extraConfig = ''
-      HandlePowerKey=suspend
-    '';
     devmon.enable = true;
-    gvfs.enable = true;
-    udisks2.enable = true;
-    fprintd.enable = true;
-    usbmuxd.enable = true;
   };
-  programs = {
-    steam.enable = true;
-    adb.enable = true;
-    fuse.userAllowOther = true;
-    zsh = {
-      enable = true;
-      shellAliases = {
-        unlock = "export BW_SESSION=$(bw unlock --raw)";
-        dotfiles =
-          "chezmoi init https://github.com/lavalleeale/.dotfiles && chezmoi apply";
-      };
-    };
-    direnv.enable = true;
-    hyprland.enable = true;
-    gnupg.agent = {
-      enable = true;
-      pinentryPackage = pkgs.pinentry-qt;
-    };
-  };
+  programs.zsh.enable = true;
   users = {
+    mutableUsers = false;
     defaultUserShell = pkgs.zsh;
     users = {
       alex = {
@@ -189,49 +42,32 @@ in {
           "adbusers"
           "tss"
           "input"
+          "dialout"
+          "audio"
         ]; # Enable ‘sudo’ for the user.
       };
     };
   };
 
-  qt = {
-    enable = true;
-    platformTheme = "gnome";
-    style = "adwaita-dark";
-  };
-
   nix = {
     settings = {
       experimental-features = [ "nix-command" "flakes" ];
-      substituters =
-        [ "https://lavalleeale.cachix.org" "https://cache.nixos.org/" ];
+      substituters = [
+        "https://lavalleeale.cachix.org"
+        "https://cache.nixos.org/"
+        "https://hyprland.cachix.org"
+      ];
       trusted-public-keys = [
         "lavalleeale.cachix.org-1:durM7fu7UhmWkgUoc/3lUQF30Z+rEVNmFb0lRrhIO7Y="
+        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
       ];
     };
   };
 
   networking.networkmanager.enable = true;
 
-  hardware = {
-    bluetooth.enable = true; # enables support for Bluetooth
-    bluetooth.powerOnBoot = true;
-    graphics.enable = true;
-    graphics.enable32Bit = true;
-    uinput.enable = true;
-  };
-
   environment.systemPackages = with pkgs;
     let
-      rstudio-custom = rstudioWrapper.override {
-        packages = with rPackages; [ ggplot2 dplyr tidyverse ];
-      };
-      launcher = (builtins.getFlake
-        "github:lavalleeale/gorg").packages.${pkgs.system}.default;
-      clipboard = (builtins.getFlake
-        "github:lavalleeale/wl-paste-cpp").packages.${pkgs.system}.default;
-      zen-browser = (builtins.getFlake
-        "github:0xc000022070/zen-browser-flake").packages.${pkgs.system}.default;
       python3-custom = python3.withPackages (ps:
         with ps; [
           aiohttp
@@ -253,14 +89,11 @@ in {
           tqdm
           websockets
         ]);
-      texlive-custom = texlive.combine {
-        inherit (pkgs.texlive)
-          scheme-medium titlesec fontawesome changepage enumitem;
-      };
 
       # Development tools
       devTools = [
         cmake
+        gnupg
         fw-ectool
         gcc
         git
@@ -285,17 +118,6 @@ in {
         slurp
       ];
 
-      # IDEs and editors
-      editors = [
-        android-studio
-        jetbrains.clion
-        jetbrains.phpstorm
-        unstable.neovim
-        vim
-        unstable.vscode
-      ];
-
-      # System utilities
       sysUtils = [
         bc
         btop
@@ -317,126 +139,24 @@ in {
         xremap
         trash-cli
       ];
-
-      # Security and encryption
-      securityTools =
-        [ openssl sbctl tpm2-tools yubikey-manager bitwarden-cli ];
-
-      # Virtualization and containers
-      virtTools = [
-        (vagrant.override { withLibvirt = false; })
-        dnsmasq
-        packer
-        virt-manager
-      ];
-
-      # Desktop and GUI applications
-      desktopApps = [
-        catppuccin-papirus-folders
-        alacritty
-        kdePackages.dolphin
-        dunst
-        google-chrome
-        firefox
-        zen-browser
-        kitty
-        obsidian
-        parsec-bin
-        ledger-live-desktop
-        postman
-        prismlauncher
-        tetrio-desktop
-        tor-browser-bundle-bin
-        vesktop
-        vlc
-      ];
-
-      # Wayland-specific tools
-      waylandTools = [
-        brightnessctl
-        hypridle
-        hyprlock
-        hyprpaper
-        hyprshot
-        hyprsunset
-        pamixer
-        rofi-wayland
-        eww
-        wayvnc
-        wl-clipboard
-        wofi
-      ];
-
-      # Development utilities
-      devUtils = [
-        act
-        atuin
-        cachix
-        cypress
-        gemini-cli
-        gh
-        jq
-        niv
-        nix-output-monitor
-        nixfmt-classic
-        nixpkgs-fmt
-        starship
-        thefuck
-        zoxide
-      ];
-
-      # Multimedia and graphics
-      mediaTools = [ imagemagick plasma5Packages.kdeconnect-kde ];
-
-      # Science and education
-      scienceTools = [ mars-mips rstudio-custom texlive-custom ];
-
-      # Other utilities
-      otherUtils = [
-        borgbackup
-        code-cursor
-        dmenu
-        eza
-        flintlock
-        launcher
-        clipboard
-        libimobiledevice
-        libisoburn
-        linuxKernel.packages.linux_zen.perf
-        mangohud
-        monero-cli
-        monero-gui
-        power-profiles-daemon
-        pywal
-        samba
-        unzip
-        valgrind
-        xdg-utils
-      ];
-    in devTools ++ editors ++ sysUtils ++ securityTools ++ virtTools
-    ++ desktopApps ++ waylandTools ++ devUtils ++ mediaTools ++ scienceTools
-    ++ otherUtils;
-
-  fonts.packages = with pkgs; [
-    font-awesome
-    powerline-fonts
-    powerline-symbols
-    nerd-fonts.fira-code
-    nerd-fonts.droid-sans-mono
-  ];
-
-  specialisation = {
-    vpn.configuration = {
-      services.openvpn.servers = {
-        upVPN = {
-          config = "config /nix/persist/ovpn/up.ovpn ";
-          updateResolvConf = true;
-          autoStart = true;
-        };
+    in devTools ++ sysUtils;
+  fonts = {
+    enableDefaultPackages = true;
+    packages = with pkgs; [
+      font-awesome
+      powerline-fonts
+      powerline-symbols
+      nerd-fonts.fira-code
+      nerd-fonts.droid-sans-mono
+    ];
+    fontconfig = {
+      defaultFonts = {
+        serif = [ "Liberation Serif" "Vazirmatn" ];
+        sansSerif = [ "Ubuntu" "Vazirmatn" ];
+        monospace = [ "Ubuntu Mono" ];
       };
     };
   };
-
-  system.stateVersion = "24.05"; # Did you read the comment?
+  system.stateVersion = "25.05"; # Did you read the comment?
 }
 
