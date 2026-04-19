@@ -51,21 +51,34 @@
     let
       system = "x86_64-linux";
       sharedConfig = { allowUnfree = true; };
-      pkgs = import nixpkgs {
-        inherit system;
-        config = sharedConfig;
-      };
-      pkgs-unstable = import inputs.nixpkgs-unstable {
-        inherit system;
-        config = sharedConfig;
-      };
       overlay = final: prev: {
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
         zen-browser = inputs.zen-browser-flake.packages.${system}.default;
       };
+      pkgs = import nixpkgs {
+        inherit system;
+        config = sharedConfig;
+        overlays = [ overlay ];
+      };
+      pkgs-unstable = import inputs.nixpkgs-unstable {
+        inherit system;
+        config = sharedConfig;
+      };
       hyprland-plugins = inputs.hyprland-plugins;
+      homeModule = import ./home.nix;
+      homeManagerSharedModules =
+        [ inputs.pywal-nix.homeManagerModules.${system}.default ];
+      homeManagerExtraSpecialArgs = { inherit hyprland-plugins pkgs-unstable; };
     in {
+      homeConfigurations = {
+        alex = inputs.home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = homeManagerExtraSpecialArgs;
+          modules = homeManagerSharedModules ++ [ homeModule ];
+        };
+      };
+
       nixosConfigurations = {
         server = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit pkgs-unstable; };
@@ -80,11 +93,10 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                users.alex = import ./home.nix;
+                users.alex = homeModule;
                 backupFileExtension = "backup";
-                sharedModules =
-                  [ inputs.pywal-nix.homeManagerModules.${system}.default ];
-                extraSpecialArgs = { inherit hyprland-plugins pkgs-unstable; };
+                sharedModules = homeManagerSharedModules;
+                extraSpecialArgs = homeManagerExtraSpecialArgs;
               };
               users.users.root.initialPassword = "changeme";
             }
@@ -113,11 +125,10 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                users.alex = import ./home.nix;
+                users.alex = homeModule;
                 backupFileExtension = "backup";
-                sharedModules =
-                  [ inputs.pywal-nix.homeManagerModules.${system}.default ];
-                extraSpecialArgs = { inherit hyprland-plugins pkgs-unstable; };
+                sharedModules = homeManagerSharedModules;
+                extraSpecialArgs = homeManagerExtraSpecialArgs;
               };
             }
             inputs.sops-nix.nixosModules.sops
