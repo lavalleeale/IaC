@@ -1,13 +1,21 @@
-{ lib, config, pkgs, ... }: {
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
+{
   boot = {
     lanzaboote = {
       enable = true;
       pkiBundle = "/etc/secureboot";
     };
   };
-  users.mutableUsers = false;
   environment = {
-    pathsToLink = [ "/share/applications" "/share/xdg-desktop-portal" ];
+    pathsToLink = [
+      "/share/applications"
+      "/share/xdg-desktop-portal"
+    ];
 
     persistence."/nix/persist" = {
       directories = [
@@ -31,7 +39,9 @@
         "/etc/machine-id"
         {
           file = "/etc/nix/id_rsa";
-          parentDirectory = { mode = "u=rwx,g=rw,o=rw"; };
+          parentDirectory = {
+            mode = "u=rwx,g=rw,o=rw";
+          };
         }
       ];
     };
@@ -51,7 +61,10 @@
       virtualisation = {
         memorySize = 8192;
         cores = 4;
-        qemu.options = [ "-device" "virtio-vga" ];
+        qemu.options = [
+          "-device"
+          "virtio-vga"
+        ];
       };
     };
     docker.enable = true;
@@ -147,19 +160,21 @@
     };
     sudo = {
       enable = true;
-      extraRules = [{
-        commands = [
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool fanduty *";
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "${pkgs.fw-ectool}/bin/ectool autofanctrl";
-            options = [ "NOPASSWD" ];
-          }
-        ];
-        groups = [ "wheel" ];
-      }];
+      extraRules = [
+        {
+          commands = [
+            {
+              command = "${pkgs.fw-ectool}/bin/ectool fanduty *";
+              options = [ "NOPASSWD" ];
+            }
+            {
+              command = "${pkgs.fw-ectool}/bin/ectool autofanctrl";
+              options = [ "NOPASSWD" ];
+            }
+          ];
+          groups = [ "wheel" ];
+        }
+      ];
     };
   };
 }

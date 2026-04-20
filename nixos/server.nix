@@ -1,4 +1,13 @@
-{ config, pkgs, pkgs-unstable, ... }: {
+{
+  config,
+  pkgs,
+  pkgs-unstable,
+  ...
+}:
+let
+  authentikProxyListenHTTP = "127.0.0.1:9005";
+in
+{
   boot.loader.grub.device = "nodev";
   fileSystems."/" = {
     device = "none";
@@ -35,9 +44,19 @@
       }
     ];
   };
-  networking.firewall.allowedTCPPorts = [ 8000 8443 9000 2222 2283 ];
+  networking.firewall.allowedTCPPorts = [
+    22
+    80
+    443
+    8000
+    8443
+    9000
+    2283
+  ];
   services = {
-    immich = { enable = true; };
+    immich = {
+      enable = true;
+    };
     authentik = {
       enable = true;
       # The environmentFile needs to be on the target host!
@@ -52,6 +71,7 @@
     };
     authentik-proxy = {
       enable = true;
+      listenHTTP = authentikProxyListenHTTP;
       environmentFile = config.sops.secrets.authentik-env.path;
     };
     caddy = {
@@ -67,8 +87,7 @@
   sops = {
     defaultSopsFile = ./secrets/example.yaml;
     # This will automatically import SSH keys as age keys
-    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-    # This is using an age key that is expected to already be in the filesystem
+    age.keyFile = "/var/lib/sops-nix/key.txt";
     # This is the actual specification of the secrets.
     secrets.authentik-env = { };
   };
@@ -80,5 +99,5 @@
     AUTHENTIK_BOOTSTRAP_EMAIL = "akadmin@localhost";
     AUTHENTIK_BOOTSTRAP_PASSWORD = "test";
   };
-  users.users.root.hashedPassword = "!";
+  users.users.root.initialPassword = "password";
 }
