@@ -46,11 +46,14 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, ... }:
+  outputs =
+    inputs@{ nixpkgs, ... }:
     let
       inherit (nixpkgs) lib;
       system = "x86_64-linux";
-      sharedConfig = { allowUnfree = true; };
+      sharedConfig = {
+        allowUnfree = true;
+      };
       overlay = final: prev: {
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
@@ -68,11 +71,13 @@
 
       homeBaseModule = import ./home.nix;
       homeDesktopModule = {
-        imports =
-          [ ./home/desktop.nix ./home/hyprland.nix ./home/hyprland-ui.nix ];
+        imports = [
+          ./home/desktop.nix
+          ./home/hyprland.nix
+          ./home/hyprland-ui.nix
+        ];
       };
-      homeManagerSharedModules =
-        [ inputs.pywal-nix.homeManagerModules.${system}.default ];
+      homeManagerSharedModules = [ inputs.pywal-nix.homeManagerModules.${system}.default ];
 
       commonSpecialArgs = { inherit pkgs-unstable; };
 
@@ -87,34 +92,59 @@
         };
       };
 
-      registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
-
-      mkUiSettings = { graphical ? false, batteryPath ? null
-        , temperaturePath ? null, networkInterface ? null
-        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
-        , hyprlandMonitors ? [ ",preferred,auto,auto" ], }: {
-          inherit graphical batteryPath temperaturePath networkInterface
-            hyprlockWallpaper hyprlockProfileImage hyprlandMonitors;
-        };
-
-      mkHomeModule = { graphical, ... }: {
-        imports = [ homeBaseModule ]
-          ++ lib.optionals graphical [ homeDesktopModule ];
+      registryModule = {
+        nix.registry.nixpkgs.flake = nixpkgs;
       };
 
-      mkHomeManagerModule = { graphical, uiSettings }: {
-        home-manager = {
-          useGlobalPkgs = true;
-          useUserPackages = true;
-          users.alex = mkHomeModule { inherit graphical uiSettings; };
-          backupFileExtension = "backup";
-          sharedModules = homeManagerSharedModules;
-          extraSpecialArgs = commonHomeSpecialArgs // { inherit uiSettings; };
+      mkUiSettings =
+        {
+          graphical ? false,
+          batteryPath ? null,
+          temperaturePath ? null,
+          networkInterface ? null,
+          hyprlockWallpaper ? null,
+          hyprlockProfileImage ? null,
+          hyprlandMonitors ? [ ",preferred,auto,auto" ],
+        }:
+        {
+          inherit
+            graphical
+            batteryPath
+            temperaturePath
+            networkInterface
+            hyprlockWallpaper
+            hyprlockProfileImage
+            hyprlandMonitors
+            ;
         };
-      };
 
-      mkHost = { graphical ? false
-        , uiSettings ? mkUiSettings { inherit graphical; }, modules }:
+      mkHomeModule =
+        { graphical, ... }:
+        {
+          imports = [ homeBaseModule ] ++ lib.optionals graphical [ homeDesktopModule ];
+        };
+
+      mkHomeManagerModule =
+        { graphical, uiSettings }:
+        {
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            users.alex = mkHomeModule { inherit graphical uiSettings; };
+            backupFileExtension = "backup";
+            sharedModules = homeManagerSharedModules;
+            extraSpecialArgs = commonHomeSpecialArgs // {
+              inherit uiSettings;
+            };
+          };
+        };
+
+      mkHost =
+        {
+          graphical ? false,
+          uiSettings ? mkUiSettings { inherit graphical; },
+          modules,
+        }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = commonSpecialArgs;
@@ -122,7 +152,9 @@
             nixpkgsModule
             (mkHomeManagerModule { inherit graphical uiSettings; })
             inputs.home-manager.nixosModules.home-manager
-          ] ++ modules ++ [ registryModule ];
+          ]
+          ++ modules
+          ++ [ registryModule ];
         };
 
       laptopUiSettings = mkUiSettings {
@@ -132,12 +164,15 @@
         networkInterface = "wlp*";
         hyprlockWallpaper = "/home/alex/Pictures/wallpapers/current";
         hyprlockProfileImage = "/home/alex/Pictures/profile.png";
-        hyprlandMonitors =
-          [ ",preferred,auto,auto" "eDP-1,2256x1504@60,0x0,1.175" ];
+        hyprlandMonitors = [
+          ",preferred,auto,auto"
+          "eDP-1,2256x1504@60,0x0,1.175"
+        ];
       };
 
       desktopUiSettings = mkUiSettings { graphical = true; };
-    in {
+    in
+    {
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
@@ -182,24 +217,6 @@
           modules = [
             inputs.sops-nix.nixosModules.sops
             inputs.authentik-nix.nixosModules.default
-            ({ pkgs, ... }:
-              let
-                authentikScope =
-                  inputs.authentik-nix.lib.mkAuthentikScope { inherit pkgs; };
-                patchedAuthentikScope = authentikScope.overrideScope
-                  (final: prev: {
-                    authentikComponents = prev.authentikComponents // {
-                      gopkgs = prev.authentikComponents.gopkgs.overrideAttrs
-                        (_: {
-                          vendorHash =
-                            "sha256-J9z9MZheUkwJzMXBy9BOYeX8oR82vV+UFMC4hRJcQvA=";
-                        });
-                    };
-                  });
-              in {
-                services.authentik.authentikComponents =
-                  patchedAuthentikScope.authentikComponents;
-              })
             ./configuration.nix
             ./server.nix
           ];

@@ -1,15 +1,32 @@
-{ lib, pkgs, pkgs-unstable, uiSettings ? { graphical = true; }, ... }:
+{
+  lib,
+  pkgs,
+  pkgs-unstable,
+  uiSettings ? {
+    graphical = true;
+  },
+  ...
+}:
 
 {
-  home.packages = with pkgs;
+  home.packages =
+    with pkgs;
     let
       graphical = uiSettings.graphical or true;
       mediaTools = [ imagemagick ];
 
-      scienceTools = [ mars-mips texlive-custom ];
+      scienceTools = [
+        mars-mips
+        texlive-custom
+      ];
       texlive-custom = texlive.combine {
         inherit (pkgs.texlive)
-          scheme-medium titlesec fontawesome changepage enumitem;
+          scheme-medium
+          titlesec
+          fontawesome
+          changepage
+          enumitem
+          ;
       };
 
       editors = [
@@ -21,8 +38,13 @@
         pkgs-unstable.vscode
       ];
 
-      securityTools =
-        [ openssl sbctl tpm2-tools yubikey-manager bitwarden-cli ];
+      securityTools = [
+        openssl
+        sbctl
+        tpm2-tools
+        yubikey-manager
+        bitwarden-cli
+      ];
 
       virtTools = [
         (vagrant.override { withLibvirt = false; })
@@ -51,8 +73,15 @@
         vlc
       ];
 
-      waylandTools =
-        [ brightnessctl hyprshot hyprsunset pamixer rofi wayvnc wl-clipboard ];
+      waylandTools = [
+        brightnessctl
+        hyprshot
+        hyprsunset
+        pamixer
+        rofi
+        wayvnc
+        wl-clipboard
+      ];
 
       otherUtils = [
         borgbackup
@@ -91,7 +120,12 @@
         starship
         zoxide
       ];
-    in devUtils ++ mediaTools ++ scienceTools ++ securityTools ++ virtTools
-    ++ lib.optionals graphical (desktopApps ++ waylandTools) ++ otherUtils
+    in
+    devUtils
+    ++ mediaTools
+    ++ scienceTools
+    ++ securityTools
+    ++ lib.optionals graphical (desktopApps ++ waylandTools ++ virtTools)
+    ++ otherUtils
     ++ editors;
 }
