@@ -9,8 +9,8 @@ let
   hyprlockProfileImage = uiSettings.hyprlockProfileImage or null;
   waybarRightModules = [ "network" ]
     ++ lib.optionals (temperaturePath != null) [ "temperature" ]
-    ++ [ "cpu" "memory" ]
-    ++ lib.optionals (batteryPath != null) [ "battery" ];
+    ++ [ "cpu" "memory" ] ++ lib.optionals (batteryPath != null) [ "battery" ]
+    ++ [ "custom/bluetooth" ];
   hyprlockLabels = [
     {
       monitor = "";
@@ -22,9 +22,7 @@ let
       halign = "center";
       valign = "center";
     }
-    {
-      text = "$FPRINTPROMPT";
-    }
+    { text = "$FPRINTPROMPT"; }
     {
       monitor = "";
       text = ''cmd[update:1000] date +"%-I:%M"'';
@@ -45,20 +43,17 @@ let
       halign = "center";
       valign = "top";
     }
-  ] ++ lib.optionals (batteryPath != null) [
-    {
-      monitor = "";
-      text = "cmd[update:1000] cat ${batteryPath}";
-      color = "rgb(ffffff)";
-      font_size = 24;
-      font_family = "JetBrains Mono";
-      position = "-90, -10";
-      halign = "right";
-      valign = "top";
-    }
-  ];
-in
-lib.mkIf (uiSettings.graphical or true) {
+  ] ++ lib.optionals (batteryPath != null) [{
+    monitor = "";
+    text = "cmd[update:1000] cat ${batteryPath}";
+    color = "rgb(ffffff)";
+    font_size = 24;
+    font_family = "JetBrains Mono";
+    position = "-90, -10";
+    halign = "right";
+    valign = "top";
+  }];
+in lib.mkIf (uiSettings.graphical or true) {
   services = {
     dunst = {
       enable = true;
@@ -94,7 +89,6 @@ lib.mkIf (uiSettings.graphical or true) {
         };
       };
     };
-
     hyprpaper = {
       enable = true;
       settings = {
@@ -119,6 +113,21 @@ lib.mkIf (uiSettings.graphical or true) {
       };
     };
   };
+
+  home.file.".config/waybar/bluetooth.sh".text = ''
+    #!/usr/bin/env bash
+    set -e
+    # Find a bluez sink name (works with pulseaudio/pipewire-pulse)
+    sink=$(pactl list short sinks 2>/dev/null | grep -i bluez | awk '{print $2}' | head -n1 || true)
+    if [ -n "$sink" ]; then
+      desc=$(pactl list sinks 2>/dev/null | awk -vRS= '/bluez/ && /Description:/ { if (match($0,/Description:[ \t]*([^\n]*)/,m)) print m[1]; exit }')
+      [ -z "$desc" ] && desc="Bluetooth"
+      printf '%s\n' "{\"text\":\" $desc\"}"
+    else
+      printf '%s\n' "{}"
+    fi
+  '';
+  home.file.".config/waybar/bluetooth.sh".executable = true;
 
   programs = {
     hyprlock = {
@@ -336,18 +345,17 @@ lib.mkIf (uiSettings.graphical or true) {
               power-saver = "";
             };
           };
-          network =
-            {
-              format-wifi = "{essid} ({signalStrength}%) ";
-              format-ethernet = "{ipaddr}/{cidr} ";
-              tooltip-format = "{ifname} via {gwaddr} ";
-              format-linked = "{ifname} (No IP) ";
-              format-disconnected = "Disconnected ⚠";
-              format-alt = "{ifname}: {ipaddr}/{cidr}";
-              tooltip = true;
-            } // lib.optionalAttrs (networkInterface != null) {
-              interface = networkInterface;
-            };
+          network = {
+            format-wifi = "{essid} ({signalStrength}%) ";
+            format-ethernet = "{ipaddr}/{cidr} ";
+            tooltip-format = "{ifname} via {gwaddr} ";
+            format-linked = "{ifname} (No IP) ";
+            format-disconnected = "Disconnected ⚠";
+            format-alt = "{ifname}: {ipaddr}/{cidr}";
+            tooltip = true;
+          } // lib.optionalAttrs (networkInterface != null) {
+            interface = networkInterface;
+          };
           pulseaudio = {
             format = "{volume}% {icon}";
             format-bluetooth = "{volume}% {icon} {format_source}";
@@ -367,16 +375,11 @@ lib.mkIf (uiSettings.graphical or true) {
             on-click = "pavucontrol";
             reverse-scrolling = true;
           };
-          "custom/media" = {
-            format = "{icon} {text}";
+          "custom/bluetooth" = {
+            format = "{text}";
             return-type = "json";
-            max-length = 40;
-            format-icons = {
-              spotify = "";
-              default = "🎜";
-            };
-            escape = true;
-            exec = "$HOME/.config/waybar/mediaplayer.py 2> /dev/null";
+            interval = 5;
+            exec = "$HOME/.config/waybar/bluetooth.sh 2> /dev/null";
           };
           "custom/power" = {
             format = "⏻ ";
@@ -389,13 +392,6 @@ lib.mkIf (uiSettings.graphical or true) {
               suspend = "systemctl suspend";
               hibernate = "systemctl hibernate";
             };
-          };
-          "custom/nextevent" = {
-            format = "{}";
-            max-length = 40;
-            escape = true;
-            interval = 60;
-            exec = "nextevent $HOME/Calendars/racs.ics";
           };
         } // lib.optionalAttrs (temperaturePath != null) {
           temperature = {
