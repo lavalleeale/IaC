@@ -2,9 +2,10 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, pkgs-unstable, ... }:
+{ config, lib, pkgs, pkgs-unstable, isWsl ? false, ... }:
 
-{
+let hostOnly = !isWsl;
+in {
   boot.kernel.sysctl = {
     "fs.file-max" = "1048576"; # Example value
   };
@@ -16,15 +17,15 @@
       ports = [ 22 ];
       settings.PermitRootLogin = "no";
     };
-    avahi = {
+    avahi = lib.mkIf hostOnly {
       enable = true;
       nssmdns4 = true;
       nssmdns6 = true;
     };
-    fwupd.enable = true;
+    fwupd.enable = hostOnly;
     tailscale.enable = true;
     nixseparatedebuginfod2.enable = true;
-    devmon.enable = true;
+    devmon.enable = hostOnly;
   };
   programs.zsh.enable = true;
   users = {
@@ -35,9 +36,10 @@
         createHome = true;
         isNormalUser = true;
         extraGroups = [
+          "wheel"
+        ] ++ lib.optionals hostOnly [
           "libvirtd"
           "docker"
-          "wheel"
           "vboxusers"
           "adbusers"
           "tss"
@@ -64,7 +66,7 @@
     };
   };
 
-  networking.networkmanager.enable = true;
+  networking.networkmanager.enable = hostOnly;
 
   environment.systemPackages = with pkgs;
     let
@@ -94,7 +96,6 @@
       devTools = [
         cmake
         gnupg
-        fw-ectool
         gcc
         git
         gnumake
@@ -103,20 +104,16 @@
         nodejs_22
         php
         chezmoi
-        waypaper
         pkg-config
         postgresql_14
         python3-custom
         rustfmt
         ruby
         sqlite
-        usbutils
         yarn
         jdk
-        jetbrains.idea
         file
-        slurp
-      ];
+      ] ++ lib.optionals hostOnly [ fw-ectool waypaper usbutils jetbrains.idea slurp ];
 
       sysUtils = [
         bc
@@ -134,12 +131,10 @@
         ripgrep
         wget
         socat
-        solaar
-        clipman
-        xremap
         trash-cli
-      ];
-    in devTools ++ sysUtils;
+      ] ++ lib.optionals hostOnly [ clipman solaar xremap ];
+    in
+    devTools ++ sysUtils;
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [

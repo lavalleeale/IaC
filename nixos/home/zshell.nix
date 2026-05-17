@@ -1,10 +1,20 @@
+{ lib, uiSettings ? { }, ... }:
+
+let
+  graphical = uiSettings.graphical or false;
+  wsl = uiSettings.wsl or false;
+in
 {
   home.shellAliases = {
     bell = ''echo -e "\a"'';
-    pbcopy = "wl-copy";
-    pbpaste = "wl-paste";
+    pbcopy = if wsl then "clip.exe" else "wl-copy";
+    pbpaste =
+      if wsl then
+        "powershell.exe -NoProfile -Command Get-Clipboard"
+      else
+        "wl-paste";
     please = "sudo $(fc -ln -1)";
-    open = "xdg-open";
+    open = if wsl then "wslview" else "xdg-open";
     vg = "valgrind --leak-check=full --track-origins=yes --show-reachable=yes";
     ls = "eza";
     ll = "eza -l";
@@ -28,15 +38,19 @@
             local filename="$1"
             latexmk -pdf -halt-on-error "$filename" && latexmk -c "$filename"
         }
+      '' + lib.optionalString graphical ''
         split() {
             local escaped
             escaped=$(printf '%q ' "$@")
             hyprctl dispatch exec "alacritty --working-directory $(pwd) -e sh -c \"$escaped\""
         }
+      '' + ''
         bindkey "^[[1;5C" forward-word
         bindkey "^[[1;5D" backward-word
         export GPG_TTY=$(tty)
+      '' + lib.optionalString graphical ''
         wal -Rq
+      '' + ''
         autoload -U edit-command-line
         zle -N edit-command-line
         bindkey '^xe' edit-command-line

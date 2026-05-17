@@ -3,11 +3,13 @@
 {
   home.packages = with pkgs;
     let
-      graphical = uiSettings.graphical or true;
-      browser = if uiSettings.hardwareVideoDecode or false then
-        zen-browser-vaapi
-      else
-        zen-browser;
+      graphical = uiSettings.graphical or false;
+      wsl = uiSettings.wsl or false;
+      browser =
+        if uiSettings.hardwareVideoDecode or false then
+          zen-browser-vaapi
+        else
+          zen-browser;
       mediaTools = [ imagemagick ];
 
       scienceTools = [ mars-mips texlive-custom ];
@@ -17,16 +19,18 @@
       };
 
       editors = [
+        pkgs-unstable.neovim
+        vim
+      ] ++ lib.optionals graphical [
         android-studio
         jetbrains.clion
         jetbrains.phpstorm
-        pkgs-unstable.neovim
-        vim
         pkgs-unstable.vscode
       ];
 
       securityTools =
-        [ openssl sbctl tpm2-tools yubikey-manager bitwarden-cli ];
+        [ openssl yubikey-manager bitwarden-cli ]
+        ++ lib.optionals graphical [ sbctl tpm2-tools ];
 
       virtTools = [
         (vagrant.override { withLibvirt = false; })
@@ -64,20 +68,23 @@
         dmenu
         eza
         flintlock
-        gorg
-        wl-paste
         libimobiledevice
         libisoburn
+        monero-cli
+        unzip
+        valgrind
+        xdg-utils
+      ] ++ lib.optionals wsl [
+        wslu
+      ] ++ lib.optionals graphical [
+        gorg
+        wl-paste
         linuxKernel.packages.linux_zen.perf
         mangohud
-        monero-cli
         monero-gui
         power-profiles-daemon
         pywal
         samba
-        unzip
-        valgrind
-        xdg-utils
       ];
 
       devUtils = [
@@ -95,7 +102,8 @@
         starship
         zoxide
       ];
-    in devUtils ++ mediaTools ++ scienceTools ++ securityTools
+    in
+    devUtils ++ mediaTools ++ scienceTools ++ securityTools
     ++ lib.optionals graphical (desktopApps ++ waylandTools ++ virtTools)
     ++ otherUtils ++ editors;
 }

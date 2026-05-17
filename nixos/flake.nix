@@ -4,6 +4,7 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     impermanence.url = "github:nix-community/impermanence";
+    nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -55,11 +56,12 @@
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
         zen-browser = inputs.zen-browser-flake.packages.${system}.default;
-        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi" {
-          nativeBuildInputs = [ final.makeWrapper ];
-          meta = final.zen-browser.meta;
-          passthru = final.zen-browser.passthru;
-        } ''
+        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi"
+          {
+            nativeBuildInputs = [ final.makeWrapper ];
+            meta = final.zen-browser.meta;
+            passthru = final.zen-browser.passthru;
+          } ''
           cp -a ${final.zen-browser} "$out"
           chmod -R u+w "$out"
           substituteInPlace "$out/bin/zen-beta" \
@@ -112,12 +114,19 @@
 
       registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
 
-      mkUiSettings = { graphical ? false, batteryPath ? null
-        , temperaturePath ? null, networkInterface ? null
-        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
+      mkUiSettings =
+        { graphical ? false
+        , wsl ? false
+        , batteryPath ? null
+        , temperaturePath ? null
+        , networkInterface ? null
+        , hyprlockWallpaper ? null
+        , hyprlockProfileImage ? null
         , hyprlandMonitors ? [ ",preferred,auto,auto" ]
-        , hardwareVideoDecode ? false, }: {
-          inherit graphical batteryPath temperaturePath networkInterface
+        , hardwareVideoDecode ? false
+        ,
+        }: {
+          inherit graphical wsl batteryPath temperaturePath networkInterface
             hyprlockWallpaper hyprlockProfileImage hyprlandMonitors
             hardwareVideoDecode;
         };
@@ -138,11 +147,16 @@
         };
       };
 
-      mkHost = { graphical ? false
-        , uiSettings ? mkUiSettings { inherit graphical; }, modules, }:
+      mkHost =
+        { graphical ? false
+        , isWsl ? false
+        , uiSettings ? mkUiSettings { inherit graphical; wsl = isWsl; }
+        , modules
+        ,
+        }:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = commonSpecialArgs;
+          specialArgs = commonSpecialArgs // { inherit isWsl; };
           modules = [
             nixpkgsModule
             (mkHomeManagerModule { inherit graphical uiSettings; })
@@ -163,7 +177,12 @@
       };
 
       desktopUiSettings = mkUiSettings { graphical = true; };
-    in {
+      wslUiSettings = mkUiSettings {
+        graphical = false;
+        wsl = true;
+      };
+    in
+    {
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
@@ -201,6 +220,16 @@
             ./configuration.nix
             ./desktop.nix
             ./desktop-hardware-configuration.nix
+          ];
+        };
+
+        wsl = mkHost {
+          isWsl = true;
+          uiSettings = wslUiSettings;
+          modules = [
+            inputs.nixos-wsl.nixosModules.default
+            ./configuration.nix
+            ./wsl.nix
           ];
         };
 

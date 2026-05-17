@@ -53,7 +53,8 @@ let
     halign = "right";
     valign = "top";
   }];
-in lib.mkIf (uiSettings.graphical or true) {
+in
+lib.mkIf (uiSettings.graphical or false) {
   services = {
     dunst = {
       enable = true;
