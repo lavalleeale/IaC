@@ -1,32 +1,19 @@
-{
-  lib,
-  pkgs,
-  pkgs-unstable,
-  uiSettings ? {
-    graphical = true;
-  },
-  ...
-}:
+{ lib, pkgs, pkgs-unstable, uiSettings ? { graphical = true; }, ... }:
 
 {
-  home.packages =
-    with pkgs;
+  home.packages = with pkgs;
     let
       graphical = uiSettings.graphical or true;
+      browser = if uiSettings.hardwareVideoDecode or false then
+        zen-browser-vaapi
+      else
+        zen-browser;
       mediaTools = [ imagemagick ];
 
-      scienceTools = [
-        mars-mips
-        texlive-custom
-      ];
+      scienceTools = [ mars-mips texlive-custom ];
       texlive-custom = texlive.combine {
         inherit (pkgs.texlive)
-          scheme-medium
-          titlesec
-          fontawesome
-          changepage
-          enumitem
-          ;
+          scheme-medium titlesec fontawesome changepage enumitem;
       };
 
       editors = [
@@ -38,13 +25,8 @@
         pkgs-unstable.vscode
       ];
 
-      securityTools = [
-        openssl
-        sbctl
-        tpm2-tools
-        yubikey-manager
-        bitwarden-cli
-      ];
+      securityTools =
+        [ openssl sbctl tpm2-tools yubikey-manager bitwarden-cli ];
 
       virtTools = [
         (vagrant.override { withLibvirt = false; })
@@ -60,7 +42,7 @@
         dunst
         google-chrome
         firefox
-        zen-browser
+        browser
         kitty
         obsidian
         parsec-bin
@@ -73,15 +55,8 @@
         vlc
       ];
 
-      waylandTools = [
-        brightnessctl
-        hyprshot
-        hyprsunset
-        pamixer
-        rofi
-        wayvnc
-        wl-clipboard
-      ];
+      waylandTools =
+        [ brightnessctl hyprshot hyprsunset pamixer rofi wayvnc wl-clipboard ];
 
       otherUtils = [
         borgbackup
@@ -120,12 +95,7 @@
         starship
         zoxide
       ];
-    in
-    devUtils
-    ++ mediaTools
-    ++ scienceTools
-    ++ securityTools
+    in devUtils ++ mediaTools ++ scienceTools ++ securityTools
     ++ lib.optionals graphical (desktopApps ++ waylandTools ++ virtTools)
-    ++ otherUtils
-    ++ editors;
+    ++ otherUtils ++ editors;
 }

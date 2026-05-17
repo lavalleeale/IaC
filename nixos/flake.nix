@@ -46,18 +46,38 @@
     };
   };
 
-  outputs =
-    inputs@{ nixpkgs, ... }:
+  outputs = inputs@{ nixpkgs, ... }:
     let
       inherit (nixpkgs) lib;
       system = "x86_64-linux";
-      sharedConfig = {
-        allowUnfree = true;
-      };
+      sharedConfig = { allowUnfree = true; };
       overlay = final: prev: {
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
         zen-browser = inputs.zen-browser-flake.packages.${system}.default;
+        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi" {
+          nativeBuildInputs = [ final.makeWrapper ];
+          meta = final.zen-browser.meta;
+          passthru = final.zen-browser.passthru;
+        } ''
+          cp -a ${final.zen-browser} "$out"
+          chmod -R u+w "$out"
+          substituteInPlace "$out/bin/zen-beta" \
+            --replace-fail '${final.zen-browser}' "$out"
+          cat >> "$out"/lib/zen-bin-*/mozilla.cfg <<'EOF'
+
+          // Prefer VA-API hardware video decoding on the AMD laptop.
+          defaultPref("media.ffmpeg.vaapi.enabled", true);
+          defaultPref("media.hardware-video-decoding.force-enabled", true);
+          defaultPref("media.rdd-ffmpeg.enabled", true);
+          EOF
+          mv "$out/bin/zen-beta" "$out/bin/zen-beta-unwrapped"
+          makeWrapper "$out/bin/zen-beta-unwrapped" "$out/bin/zen-beta" \
+            --set-default MOZ_ENABLE_WAYLAND 1 \
+            --set LIBVA_DRIVER_NAME radeonsi \
+            --set VDPAU_DRIVER radeonsi \
+            --set MOZ_DISABLE_RDD_SANDBOX 1
+        '';
       };
       pkgs = import nixpkgs {
         inherit system;
@@ -71,13 +91,11 @@
 
       homeBaseModule = import ./home.nix;
       homeDesktopModule = {
-        imports = [
-          ./home/desktop.nix
-          ./home/hyprland.nix
-          ./home/hyprland-ui.nix
-        ];
+        imports =
+          [ ./home/desktop.nix ./home/hyprland.nix ./home/hyprland-ui.nix ];
       };
-      homeManagerSharedModules = [ inputs.pywal-nix.homeManagerModules.${system}.default ];
+      homeManagerSharedModules =
+        [ inputs.pywal-nix.homeManagerModules.${system}.default ];
 
       commonSpecialArgs = { inherit pkgs-unstable; };
 
@@ -92,59 +110,36 @@
         };
       };
 
-      registryModule = {
-        nix.registry.nixpkgs.flake = nixpkgs;
+      registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
+
+      mkUiSettings = { graphical ? false, batteryPath ? null
+        , temperaturePath ? null, networkInterface ? null
+        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
+        , hyprlandMonitors ? [ ",preferred,auto,auto" ]
+        , hardwareVideoDecode ? false, }: {
+          inherit graphical batteryPath temperaturePath networkInterface
+            hyprlockWallpaper hyprlockProfileImage hyprlandMonitors
+            hardwareVideoDecode;
+        };
+
+      mkHomeModule = { graphical, ... }: {
+        imports = [ homeBaseModule ]
+          ++ lib.optionals graphical [ homeDesktopModule ];
       };
 
-      mkUiSettings =
-        {
-          graphical ? false,
-          batteryPath ? null,
-          temperaturePath ? null,
-          networkInterface ? null,
-          hyprlockWallpaper ? null,
-          hyprlockProfileImage ? null,
-          hyprlandMonitors ? [ ",preferred,auto,auto" ],
-        }:
-        {
-          inherit
-            graphical
-            batteryPath
-            temperaturePath
-            networkInterface
-            hyprlockWallpaper
-            hyprlockProfileImage
-            hyprlandMonitors
-            ;
+      mkHomeManagerModule = { graphical, uiSettings }: {
+        home-manager = {
+          useGlobalPkgs = true;
+          useUserPackages = true;
+          users.alex = mkHomeModule { inherit graphical uiSettings; };
+          backupFileExtension = "backup";
+          sharedModules = homeManagerSharedModules;
+          extraSpecialArgs = commonHomeSpecialArgs // { inherit uiSettings; };
         };
+      };
 
-      mkHomeModule =
-        { graphical, ... }:
-        {
-          imports = [ homeBaseModule ] ++ lib.optionals graphical [ homeDesktopModule ];
-        };
-
-      mkHomeManagerModule =
-        { graphical, uiSettings }:
-        {
-          home-manager = {
-            useGlobalPkgs = true;
-            useUserPackages = true;
-            users.alex = mkHomeModule { inherit graphical uiSettings; };
-            backupFileExtension = "backup";
-            sharedModules = homeManagerSharedModules;
-            extraSpecialArgs = commonHomeSpecialArgs // {
-              inherit uiSettings;
-            };
-          };
-        };
-
-      mkHost =
-        {
-          graphical ? false,
-          uiSettings ? mkUiSettings { inherit graphical; },
-          modules,
-        }:
+      mkHost = { graphical ? false
+        , uiSettings ? mkUiSettings { inherit graphical; }, modules, }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = commonSpecialArgs;
@@ -152,9 +147,7 @@
             nixpkgsModule
             (mkHomeManagerModule { inherit graphical uiSettings; })
             inputs.home-manager.nixosModules.home-manager
-          ]
-          ++ modules
-          ++ [ registryModule ];
+          ] ++ modules ++ [ registryModule ];
         };
 
       laptopUiSettings = mkUiSettings {
@@ -164,15 +157,13 @@
         networkInterface = "wlp*";
         hyprlockWallpaper = "/home/alex/Pictures/wallpapers/current";
         hyprlockProfileImage = "/home/alex/Pictures/profile.png";
-        hyprlandMonitors = [
-          ",preferred,auto,auto"
-          "eDP-1,2256x1504@60,0x0,1.175"
-        ];
+        hardwareVideoDecode = true;
+        hyprlandMonitors =
+          [ ",preferred,auto,auto" "eDP-1,2256x1504@60,0x0,1.175" ];
       };
 
       desktopUiSettings = mkUiSettings { graphical = true; };
-    in
-    {
+    in {
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;

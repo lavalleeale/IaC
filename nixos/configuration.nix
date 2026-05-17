@@ -2,13 +2,7 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{
-  config,
-  lib,
-  pkgs,
-  pkgs-unstable,
-  ...
-}:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 
 {
   boot.kernel.sysctl = {
@@ -57,10 +51,7 @@
 
   nix = {
     settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
+      experimental-features = [ "nix-command" "flakes" ];
       substituters = [
         "https://lavalleeale.cachix.org"
         "https://cache.nixos.org/"
@@ -75,11 +66,10 @@
 
   networking.networkmanager.enable = true;
 
-  environment.systemPackages =
-    with pkgs;
+  environment.systemPackages = with pkgs;
     let
-      python3-custom = python3.withPackages (
-        ps: with ps; [
+      python3-custom = python3.withPackages (ps:
+        with ps; [
           aiohttp
           pylast
           argparse
@@ -98,8 +88,7 @@
           requests
           tqdm
           websockets
-        ]
-      );
+        ]);
 
       # Development tools
       devTools = [
@@ -150,8 +139,7 @@
         xremap
         trash-cli
       ];
-    in
-    devTools ++ sysUtils;
+    in devTools ++ sysUtils;
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [
@@ -163,14 +151,8 @@
     ];
     fontconfig = {
       defaultFonts = {
-        serif = [
-          "Liberation Serif"
-          "Vazirmatn"
-        ];
-        sansSerif = [
-          "Ubuntu"
-          "Vazirmatn"
-        ];
+        serif = [ "Liberation Serif" "Vazirmatn" ];
+        sansSerif = [ "Ubuntu" "Vazirmatn" ];
         monospace = [ "Ubuntu Mono" ];
       };
     };
