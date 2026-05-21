@@ -14,7 +14,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v1.0.0";
+      url = "github:nix-community/lanzaboote";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser-flake = {
@@ -56,12 +56,11 @@
         gorg = inputs.gorg-flake.packages.${system}.default;
         wl-paste = inputs.wl-paste-flake.packages.${system}.default;
         zen-browser = inputs.zen-browser-flake.packages.${system}.default;
-        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi"
-          {
-            nativeBuildInputs = [ final.makeWrapper ];
-            meta = final.zen-browser.meta;
-            passthru = final.zen-browser.passthru;
-          } ''
+        zen-browser-vaapi = final.runCommand "${final.zen-browser.name}-vaapi" {
+          nativeBuildInputs = [ final.makeWrapper ];
+          meta = final.zen-browser.meta;
+          passthru = final.zen-browser.passthru;
+        } ''
           cp -a ${final.zen-browser} "$out"
           chmod -R u+w "$out"
           substituteInPlace "$out/bin/zen-beta" \
@@ -114,18 +113,11 @@
 
       registryModule = { nix.registry.nixpkgs.flake = nixpkgs; };
 
-      mkUiSettings =
-        { graphical ? false
-        , wsl ? false
-        , batteryPath ? null
-        , temperaturePath ? null
-        , networkInterface ? null
-        , hyprlockWallpaper ? null
-        , hyprlockProfileImage ? null
+      mkUiSettings = { graphical ? false, wsl ? false, batteryPath ? null
+        , temperaturePath ? null, networkInterface ? null
+        , hyprlockWallpaper ? null, hyprlockProfileImage ? null
         , hyprlandMonitors ? [ ",preferred,auto,auto" ]
-        , hardwareVideoDecode ? false
-        ,
-        }: {
+        , hardwareVideoDecode ? false, }: {
           inherit graphical wsl batteryPath temperaturePath networkInterface
             hyprlockWallpaper hyprlockProfileImage hyprlandMonitors
             hardwareVideoDecode;
@@ -147,13 +139,10 @@
         };
       };
 
-      mkHost =
-        { graphical ? false
-        , isWsl ? false
-        , uiSettings ? mkUiSettings { inherit graphical; wsl = isWsl; }
-        , modules
-        ,
-        }:
+      mkHost = { graphical ? false, isWsl ? false, uiSettings ? mkUiSettings {
+        inherit graphical;
+        wsl = isWsl;
+      }, modules, }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = commonSpecialArgs // { inherit isWsl; };
@@ -181,8 +170,7 @@
         graphical = false;
         wsl = true;
       };
-    in
-    {
+    in {
       homeConfigurations = {
         alex = inputs.home-manager.lib.homeManagerConfiguration {
           inherit pkgs;

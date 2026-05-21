@@ -1,10 +1,58 @@
-{ lib, config, pkgs, ... }: {
-  boot = {
-    lanzaboote = {
-      enable = true;
-      pkiBundle = "/etc/secureboot";
-    };
+{ lib, config, pkgs, ... }:
+let
+  upstreamLonePlymouthTheme =
+    pkgs.adi1090x-plymouth-themes.override { selected_themes = [ "lone" ]; };
+  loneDisplayMessageScript = pkgs.writeText "lone-display-message.script" ''
+    // tpm2-totp uses Plymouth's display-message API. Keep the message active
+    // when the LUKS password prompt redraws over the normal boot display.
+    active_message = null;
+
+    fun DrawActiveMessage() {
+        if (active_message != null) {
+            message.image = Image.Text(active_message, 1, 1, 1);
+            message.sprite = Sprite(message.image);
+            message.sprite.SetPosition(
+                screen.half.w - message.image.GetWidth() / 2,
+                message.image.GetHeight(),
+                10000
+            );
+        }
+    }
+
+    fun DisplayMessageCallback(text) {
+        active_message = text;
+        DrawActiveMessage();
+    }
+
+    fun HideMessageCallback(text) {
+        active_message = null;
+        message = null;
+    }
+
+    fun DisplayPasswordWithMessageCallback(nil, bulletCount) {
+        DisplayPasswordCallback(nil, bulletCount);
+        DrawActiveMessage();
+    }
+
+    Plymouth.SetDisplayPasswordFunction(DisplayPasswordWithMessageCallback);
+    Plymouth.SetDisplayMessageFunction(DisplayMessageCallback);
+    Plymouth.SetHideMessageFunction(HideMessageCallback);
+  '';
+  lonePlymouthTheme =
+    pkgs.runCommand "lone-plymouth-theme-with-display-message" { } ''
+      mkdir -p $out/share/plymouth/themes
+      cp -R ${upstreamLonePlymouthTheme}/share/plymouth/themes/lone $out/share/plymouth/themes/lone
+      chmod -R u+w $out/share/plymouth/themes/lone
+      cat ${loneDisplayMessageScript} >> $out/share/plymouth/themes/lone/lone.script
+    '';
+in {
+  boot.plymouth = {
+    enable = true;
+    theme = "lone";
+    themePackages = [ lonePlymouthTheme ];
+    tpm2-totp.enable = true;
   };
+
   environment = {
     sessionVariables = {
       LIBVA_DRIVER_NAME = "radeonsi";
@@ -19,7 +67,10 @@
       directories = [
         "/etc/ssh"
         "/etc/nixos"
-        "/etc/secureboot"
+        {
+          directory = "/etc/secureboot";
+          mode = "u=rwx,g=,o=";
+        }
         "/var/log"
         "/var/lib/docker"
         "/var/lib/nixos"
@@ -32,6 +83,14 @@
         "/var/lib/tailscale"
         "/etc/NetworkManager/system-connections"
         "/root"
+        {
+          directory = "/var/lib/pcrlock.d";
+          mode = "u=rwx,g=,o=";
+        }
+        {
+          directory = "/var/lib/systemd/pcrlock";
+          mode = "u=rwx,g=,o=";
+        }
       ];
       files = [
         "/etc/machine-id"

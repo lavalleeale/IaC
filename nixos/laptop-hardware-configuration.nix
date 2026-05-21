@@ -32,6 +32,16 @@
         editor = false;
       };
     };
+    lanzaboote = {
+      enable = true;
+      pkiBundle = "/etc/secureboot";
+      measuredBoot = {
+        enable = true;
+        pcrs = [ 0 1 2 3 4 7 ];
+        pcrlockPolicy = "/var/lib/systemd/pcrlock/pcrlock.json";
+        pcrlockDirectory = "/var/lib/pcrlock.d";
+      };
+    };
   };
 
   fileSystems = {
