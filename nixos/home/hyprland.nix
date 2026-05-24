@@ -95,7 +95,7 @@ lib.mkIf (uiSettings.graphical or false) {
         "/usr/lib/polkit-kde-authentication-agent-1"
         "hyprsunset"
         "dunst"
-        "waybar"
+        "quickshell --config topbar"
         "xremap $HOME/.config/xremap/config.yml"
         "sleep 1 && wl-copy-slurp"
         "[workspace $zenWorkspace silent] zen-beta"

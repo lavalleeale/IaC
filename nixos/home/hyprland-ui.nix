@@ -2,15 +2,13 @@
 
 let
   batteryPath = uiSettings.batteryPath or null;
-  temperaturePath = uiSettings.temperaturePath or null;
-  networkInterface = uiSettings.networkInterface or null;
+  batteryStatusPath = if batteryPath != null then
+    "${builtins.dirOf batteryPath}/status"
+  else
+    null;
   hyprlockWallpaper =
     uiSettings.hyprlockWallpaper or config.pywal-nix.colourScheme.wallpaper;
   hyprlockProfileImage = uiSettings.hyprlockProfileImage or null;
-  waybarRightModules = [ "network" ]
-    ++ lib.optionals (temperaturePath != null) [ "temperature" ]
-    ++ [ "cpu" "memory" ] ++ lib.optionals (batteryPath != null) [ "battery" ]
-    ++ [ "custom/bluetooth" ];
   hyprlockLabels = [
     {
       monitor = "";
@@ -53,8 +51,7 @@ let
     halign = "right";
     valign = "top";
   }];
-in
-lib.mkIf (uiSettings.graphical or false) {
+in lib.mkIf (uiSettings.graphical or false) {
   services = {
     dunst = {
       enable = true;
@@ -115,20 +112,227 @@ lib.mkIf (uiSettings.graphical or false) {
     };
   };
 
-  home.file.".config/waybar/bluetooth.sh".text = ''
-    #!/usr/bin/env bash
-    set -e
-    # Find a bluez sink name (works with pulseaudio/pipewire-pulse)
-    sink=$(pactl list short sinks 2>/dev/null | grep -i bluez | awk '{print $2}' | head -n1 || true)
-    if [ -n "$sink" ]; then
-      desc=$(pactl list sinks 2>/dev/null | awk -vRS= '/bluez/ && /Description:/ { if (match($0,/Description:[ \t]*([^\n]*)/,m)) print m[1]; exit }')
-      [ -z "$desc" ] && desc="Bluetooth"
-      printf '%s\n' "{\"text\":\" $desc\"}"
-    else
-      printf '%s\n' "{}"
-    fi
+  home.file.".config/quickshell/topbar/shell.qml".text = ''
+    import Quickshell
+    import Quickshell.Hyprland
+    import Quickshell.Io
+    import QtQuick
+    import QtQuick.Layouts
+
+    ShellRoot {
+      id: root
+
+      property string timeText: ""
+      property string networkText: ""
+      property string loadText: ""
+      property string memoryText: ""
+      property string batteryText: ""
+      property string bluetoothText: ""
+      readonly property bool showBattery: ${
+        if batteryPath != null then "true" else "false"
+      }
+      readonly property color foreground: "${config.pywal-nix.colourScheme.special.foreground}"
+      readonly property color background: "${config.pywal-nix.colourScheme.special.background}"
+      readonly property color accent: "${config.pywal-nix.colourScheme.colours.color5}"
+
+      component BarText: Text {
+        color: root.foreground
+        font.family: "Cousine Nerd Font"
+        font.pixelSize: 15
+        verticalAlignment: Text.AlignVCenter
+      }
+
+      component Pill: Rectangle {
+        property alias text: label.text
+        property color pillColor: root.background
+        implicitWidth: label.implicitWidth + 20
+        implicitHeight: 24
+        radius: 8
+        color: pillColor
+
+        BarText {
+          id: label
+          anchors.centerIn: parent
+        }
+      }
+
+      Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+          required property var modelData
+
+          screen: modelData
+          implicitHeight: 30
+          exclusiveZone: 30
+          color: "transparent"
+
+          anchors {
+            top: true
+            left: true
+            right: true
+          }
+
+          Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+
+            RowLayout {
+              anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+                leftMargin: 8
+                rightMargin: 8
+              }
+
+              spacing: 8
+
+              Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: workspaceRow.implicitWidth + 10
+                implicitHeight: 24
+                radius: 8
+                color: root.background
+                border.color: root.background
+                border.width: 1
+
+                Row {
+                  id: workspaceRow
+                  anchors.centerIn: parent
+                  spacing: 4
+
+                  Repeater {
+                    model: Hyprland.workspaces
+
+                    Rectangle {
+                      id: workspaceButton
+
+                      required property HyprlandWorkspace modelData
+
+                      width: Math.max(workspaceLabel.implicitWidth + 16, 28)
+                      height: 20
+                      radius: 6
+                      color: modelData.focused ? root.accent : "transparent"
+                      opacity: modelData.id > 0 ? 1 : 0
+                      visible: modelData.id > 0
+
+                      BarText {
+                        id: workspaceLabel
+                        anchors.centerIn: parent
+                        text: workspaceButton.modelData.name
+                        color: workspaceButton.modelData.focused ? root.background : root.foreground
+                      }
+
+                      MouseArea {
+                        anchors.fill: parent
+                        onClicked: workspaceButton.modelData.activate()
+                      }
+                    }
+                  }
+                }
+              }
+
+              Item {
+                Layout.fillWidth: true
+              }
+
+              Row {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 5
+
+                Pill { text: "  " + root.networkText }
+                Pill { text: "  " + root.loadText }
+                Pill { text: "  " + root.memoryText }
+                Pill {
+                  visible: root.showBattery
+                  text: root.batteryText
+                }
+                Pill {
+                  visible: root.bluetoothText.length > 0
+                  text: " " + root.bluetoothText
+                }
+              }
+            }
+
+            Pill {
+              anchors.centerIn: parent
+              text: root.timeText
+            }
+          }
+        }
+      }
+
+      Process {
+        id: clockProc
+        command: ["date", "+%I:%M %p"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.timeText = this.text.trim() }
+      }
+
+      Process {
+        id: networkProc
+        command: ["sh", "-c", "ssid=$(nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | awk -F: '$1 == \"yes\" {print $2; exit}'); if [ -n \"$ssid\" ]; then printf '%s' \"$ssid\"; else ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == \"dev\") {print $(i+1); exit}}'; fi"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.networkText = this.text.trim() || "down" }
+      }
+
+      Process {
+        id: loadProc
+        command: ["sh", "-c", "cut -d ' ' -f1 /proc/loadavg"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.loadText = this.text.trim() }
+      }
+
+      Process {
+        id: memoryProc
+        command: ["sh", "-c", "free | awk '/Mem:/ {printf \"%d%%\", $3 * 100 / $2}'"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.memoryText = this.text.trim() }
+      }
+
+      Process {
+        id: batteryProc
+        command: ["sh", "-c", "${
+          if batteryPath != null then
+            "cap=$(cat ${batteryPath}); status=$(cat ${batteryStatusPath} 2>/dev/null || true); case $status in Charging) icon='' ;; 'Not charging') icon='' ;; *) if [ $cap -lt 20 ]; then icon=''; elif [ $cap -lt 40 ]; then icon=''; elif [ $cap -lt 60 ]; then icon=''; elif [ $cap -lt 80 ]; then icon=''; else icon=''; fi ;; esac; printf '%s %s%%' $icon $cap"
+          else
+            "printf ''"
+        }"]
+        running: root.showBattery
+        stdout: StdioCollector { onStreamFinished: root.batteryText = this.text.trim() }
+      }
+
+      Process {
+        id: bluetoothProc
+        command: ["sh", "-c", "pactl list sinks 2>/dev/null | awk -v RS= '/bluez/ && /Description:/ { if (match($0, /Description:[ \\t]*([^\\n]*)/, m)) print m[1]; exit }'"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.bluetoothText = this.text.trim() }
+      }
+
+      Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+          clockProc.running = true
+          loadProc.running = true
+          memoryProc.running = true
+          if (root.showBattery) batteryProc.running = true
+        }
+      }
+
+      Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: {
+          networkProc.running = true
+          bluetoothProc.running = true
+        }
+      }
+    }
   '';
-  home.file.".config/waybar/bluetooth.sh".executable = true;
 
   programs = {
     hyprlock = {
@@ -191,230 +395,9 @@ lib.mkIf (uiSettings.graphical or false) {
       });
     };
 
-    waybar = {
+    quickshell = {
       enable = true;
-      style = ''
-        * {
-          border: none;
-          font-family: Cousine Nerd Font;
-          font-size: 15px;
-        }
-
-        window#waybar {
-          background-color: rgba(0, 0, 0, 0);
-          transition-property: background-color;
-          transition-duration: 0.5s;
-        }
-
-        window#waybar.hidden {
-          opacity: 0.2;
-        }
-
-        #battery {
-          border-radius: 0 10px 10px 0;
-        }
-
-        #network {
-          border-radius: 10px 0 0 10px;
-        }
-
-        #clock,
-        #workspaces,
-        #custom-nextevent,
-        #power-profiles-daemon {
-          border-radius: 10px;
-        }
-
-        #workspaces button {
-          padding: 0 0px;
-          color: ${config.pywal-nix.colourScheme.special.foreground};
-        }
-
-        #workspaces button:hover {
-          box-shadow: inherit;
-        }
-
-        #workspaces button.active {
-          color: @color5;
-        }
-
-        #mode {
-          background-color: #64727d;
-          border-bottom: 3px solid #ffffff;
-        }
-
-        .module {
-          padding: 0 10px;
-          color: ${config.pywal-nix.colourScheme.special.foreground};
-          background-color: ${config.pywal-nix.colourScheme.special.background};
-        }
-
-        label:focus {
-          background-color: #000000;
-        }
-
-        #network.disconnected {
-          background-color: #f53c3c;
-        }
-
-        #custom-media {
-          background-color: #66cc99;
-          color: #2a5c45;
-          min-width: 100px;
-        }
-
-        #custom-media.custom-spotify {
-          background-color: #66cc99;
-        }
-
-        #custom-media.custom-vlc {
-          background-color: #ffa000;
-        }
-
-        #idle_inhibitor.activated {
-          background-color: #ecf0f1;
-          color: #2d3436;
-        }
-
-        #mpd {
-          background-color: #66cc99;
-          color: #2a5c45;
-        }
-
-        #mpd.disconnected {
-          background-color: #f53c3c;
-        }
-
-        #mpd.stopped {
-          background-color: #90b1b1;
-        }
-
-        #mpd.paused {
-          background-color: #51a37a;
-        }
-
-        #custom-nextevent,
-        #idle_inhibitor,
-        #power-profiles-daemon {
-          margin-left: 5px;
-        }
-      '';
-      settings = {
-        mainBar = ({
-          reload_style_on_change = true;
-          layer = "top";
-          position = "top";
-          height = 30;
-          modules-left = [
-            "hyprland/workspaces"
-            "hyprland/submap"
-            "custom/media"
-            "power-profiles-daemon"
-            "custom/nextevent"
-          ];
-          modules-center = [ "clock" ];
-          modules-right = waybarRightModules;
-          "hyprland/workspaces" = { format = "{name}"; };
-          "hyprland/submap" = { format = ''<span style="italic">{}</span>''; };
-          clock = {
-            tooltip-format = ''
-              <big>{:%Y %B}</big>
-              <tt><small>{calendar}</small></tt>'';
-            format-alt = "{:%Y-%m-%d}";
-            format = "{:%I:%M %p}";
-          };
-          cpu = {
-            format = "{usage}% ";
-            tooltip = false;
-          };
-          memory = { format = "{}% "; };
-          backlight = {
-            format = "{percent}% {icon}";
-            reverse-scrolling = true;
-            format-icons = [ "" "" "" "" "" "" "" "" "" ];
-          };
-          power-profiles-daemon = {
-            format = "{icon}";
-            tooltip-format = ''
-              Power profile: {profile}
-              Driver: {driver}'';
-            tooltip = true;
-            format-icons = {
-              default = "";
-              performance = "";
-              balanced = "";
-              power-saver = "";
-            };
-          };
-          network = {
-            format-wifi = "{essid} ({signalStrength}%) ";
-            format-ethernet = "{ipaddr}/{cidr} ";
-            tooltip-format = "{ifname} via {gwaddr} ";
-            format-linked = "{ifname} (No IP) ";
-            format-disconnected = "Disconnected ⚠";
-            format-alt = "{ifname}: {ipaddr}/{cidr}";
-            tooltip = true;
-          } // lib.optionalAttrs (networkInterface != null) {
-            interface = networkInterface;
-          };
-          pulseaudio = {
-            format = "{volume}% {icon}";
-            format-bluetooth = "{volume}% {icon} {format_source}";
-            format-bluetooth-muted = " {icon} {format_source}";
-            format-muted = " {format_source}";
-            format-source = "{volume}% ";
-            format-source-muted = "";
-            format-icons = {
-              headphone = "";
-              hands-free = "";
-              headset = "";
-              phone = "";
-              portable = "";
-              car = "";
-              default = [ "" "" "" ];
-            };
-            on-click = "pavucontrol";
-            reverse-scrolling = true;
-          };
-          "custom/bluetooth" = {
-            format = "{text}";
-            return-type = "json";
-            interval = 5;
-            exec = "$HOME/.config/waybar/bluetooth.sh 2> /dev/null";
-          };
-          "custom/power" = {
-            format = "⏻ ";
-            tooltip = false;
-            menu = "on-click";
-            menu-file = "$HOME/.config/waybar/power_menu.xml";
-            menu-actions = {
-              shutdown = "shutdown now";
-              reboot = "reboot";
-              suspend = "systemctl suspend";
-              hibernate = "systemctl hibernate";
-            };
-          };
-        } // lib.optionalAttrs (temperaturePath != null) {
-          temperature = {
-            hwmon-path = temperaturePath;
-            critical-threshold = 80;
-          };
-        } // lib.optionalAttrs (batteryPath != null) {
-          battery = {
-            states = {
-              warning = 30;
-              critical = 15;
-            };
-            format = "{capacity}% {icon}";
-            format-full = "{capacity}% {icon}";
-            format-charging = "{capacity}% ";
-            format-plugged = "{capacity}% ";
-            format-alt = "{time} {icon}";
-            format-icons = [ "" "" "" "" "" ];
-            interval = 1;
-          };
-        });
-      };
+      activeConfig = "topbar";
     };
   };
 }
